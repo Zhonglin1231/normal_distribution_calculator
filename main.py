@@ -24,6 +24,7 @@ while True:
         file_name = input("Insert File name：")
         print("File name is：", file_name)
 
+        # check if the file exists
         while True:
             check = os.path.isfile(file_name)
             if check == 0:
@@ -46,6 +47,26 @@ while True:
             print("Insert range of colon to use (1 ~", sheet.ncols, ")")
             start_col = input("Start_col：")
             end_col = input("End_col：")
+
+            # check if the input is valid
+            while True:
+                try:
+                    start_row = int(start_row)
+                    end_row = int(end_row)
+                    start_col = int(start_col)
+                    end_col = int(end_col)
+                    break
+                except ValueError:
+                    print("Invalid input")
+                    print("Insert range of row to use (1 ~", sheet.nrows, ")")
+                    start_row = input("Start_row：")
+                    end_row = input("End_row：")
+                    print("Insert range of colon to use (1 ~", sheet.ncols, ")")
+                    start_col = input("Start_col：")
+                    end_col = input("End_col：")
+            if start_row > end_row or start_col > end_col or end_row > sheet.nrows or end_col > sheet.ncols:
+                print("Invalid input")
+                continue
 
             # append data to data set
             for i in range(int(start_row), int(end_row) + 1):
