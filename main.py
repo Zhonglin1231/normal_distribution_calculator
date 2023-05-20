@@ -32,18 +32,34 @@ while True:
             else:
                 print("File found")
                 break
-        
+
         # initialize data set
         data_set = []
         excel = xlrd.open_workbook(file_name)
         sheet = excel.sheet_by_index(0)
-        print("Voltages: ", sheet.row_values(5)[1:])
 
-        # accept more data in the future, currently only accept data on a specific row
+        # input to choose which specific range of data in excel to use
+        while True:
+            print("Insert range of row to use (1 ~", sheet.nrows, ")")
+            start_row = input("Start_row：")
+            end_row = input("End_row：")
+            print("Insert range of colon to use (1 ~", sheet.ncols, ")")
+            start_col = input("Start_col：")
+            end_col = input("End_col：")
+
+            # append data to data set
+            for i in range(int(start_row), int(end_row) + 1):
+                for j in range(int(start_col), int(end_col) + 1):
+                    data_set.append(sheet.cell_value(i - 1, j - 1))
+            print("Data set is：", data_set)
+            # ask if keep adding
+            command_add = input("Keep adding? (y / n)：")
+            if command_add == "n":
+                break
 
         # calculate mean and variance
-        mean = sum(sheet.row_values(5)[1:]) / len(sheet.row_values(5)[1:])
-        variance = sum([(i - mean) ** 2 for i in sheet.row_values(5)[1:]]) / len(sheet.row_values(5)[1:])
+        mean = sum(data_set) / len(data_set)
+        variance = sum([(i - mean) ** 2 for i in data_set]) / len(data_set)
         standard_deviation = np.sqrt(variance)
 
         # print parameters for checking
