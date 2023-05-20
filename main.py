@@ -69,7 +69,7 @@ while True:
 
         # draw the possibility curve
         # why red line always very small!
-        x = np.linspace(mean-3*standard_deviation,mean+3*standard_deviation,100)
+        x = np.linspace(mean - 3 * standard_deviation, mean + 3 * standard_deviation, 100)
         y = stats.norm.pdf(x, mean, standard_deviation)
         plt.plot(x, y, 'r--')
 
@@ -96,11 +96,14 @@ while True:
                         x2 = input("Insert higher bound：")
 
                 possibility = abs((stats.norm.cdf(x2, mean, standard_deviation) - stats.norm.cdf(x1, mean,
-                                                                                             standard_deviation))*100)
+                                                                                                 standard_deviation)
+                                   ) * 100)
+
                 # print the possibility with precision to 4 decimal places
                 print("Possibility: ", round(possibility, 2), "%")
 
             # start next analysis
             elif command_in == "end":
+                # close the opened workbook
+                excel.release_resources()
                 break
-
