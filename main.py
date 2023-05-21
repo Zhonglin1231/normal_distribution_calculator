@@ -5,12 +5,16 @@ import matplotlib.pyplot as plt
 import scipy.stats as stats
 import PySimpleGUI as sg
 
+cumu_color = 1
+
 while True:
     # initialize parameters
     mean = 0
     variance = 0
     standard_deviation = 0
-    file_name = ""
+
+    file_name = "r--"
+    color = ""
     data_set = []
 
     # clean the screen
@@ -126,12 +130,11 @@ while True:
     variance = sum([(i - mean) ** 2 for i in data_set]) / len(data_set)
     standard_deviation = np.sqrt(variance)
 
-    # whats the problem with my coming code?
     # print the following command in the interface
     layout_check = [
-        [sg.Text(f"Mean: {mean}")],
-        [sg.Text(f"Variance: {variance}")],
-        [sg.Text(f"Standard Deviation: {standard_deviation}")],
+        [sg.Text(f"Mean: {round(mean,4)}")],
+        [sg.Text(f"Variance: {round(variance,4)}")],
+        [sg.Text(f"Standard Deviation: {round(standard_deviation,4)}")],
         [sg.Button("Graph")],
         [sg.Button("Calculate Possibility")],
         [sg.Button("End")],
@@ -144,7 +147,21 @@ while True:
         if event_check == "Graph":
             x = np.linspace(mean - 3 * standard_deviation, mean + 3 * standard_deviation, 100)
             y = stats.norm.pdf(x, mean, standard_deviation)
-            plt.plot(x, y, 'r--')
+
+            # provide different colors
+            if cumu_color %6 == 1:
+                color = "r--"
+            elif cumu_color %6 == 2:
+                color = "b--"
+            elif cumu_color %6 == 3:
+                color = "g--"
+            elif cumu_color %6 == 4:
+                color = "y--"
+            else:
+                color = "c--"
+            plt.plot(x, y, color)
+            cumu_color += 1
+            plt.show()
 
         elif event_check == "Calculate Possibility":
             # start a new interface and ask for x1 and x2
@@ -152,6 +169,7 @@ while True:
                 [sg.Text("Insert lower bound："), sg.InputText(key="x1")],
                 [sg.Text("Insert higher bound："), sg.InputText(key="x2")],
                 [sg.Button("Confirm")],
+                [sg.Button("End")],
                 [sg.Button("Exit")]
             ]
 
@@ -175,9 +193,13 @@ while True:
                     # print the possibility with precision to 4 decimal places
                     sg.Popup("Possibility: ", round(possibility, 2), "%")
 
-                elif event_check in ("Exit", None):
-                    window_check.close()
+                elif event_possibility == "End":
+                    window_possibility.close()
                     break
+
+                elif event_possibility in ("Exit", None):
+                    window_possibility.close()
+                    exit()
 
         elif event_check == "End":
             excel.release_resources()
