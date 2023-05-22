@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import scipy.stats as stats
 import PySimpleGUI as sg
 import sys
-from Chinese_version import main as test
+from Chinese_version import main as Chinese_version
 
 # create a choose language interface
 layout_language = [
