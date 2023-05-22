@@ -10,17 +10,9 @@ import sys
 # make a main function
 def main():
     cumulative_color = 1
+    # initialize parameters
 
     while True:
-        # initialize parameters
-        mean = 0
-        variance = 0
-        standard_deviation = 0
-
-        file_name = "r--"
-        color = ""
-        data_set = []
-
         # clean the screen
         os.system("cls")
         # -----------------------------------------------------------------
@@ -49,8 +41,10 @@ def main():
         #                   choose file interface
         # -----------------------------------------------------------------
         # create layout_choose_file
+        # choose file by clicking file
+
         layout_file = [
-            [sg.InputText("文件名", key="文件名")],
+            [sg.FileBrowse(button_text="选择文件"), sg.In(key="文件名")],
             [sg.Button("确认")],
             [sg.Button("退出")]
         ]
@@ -67,7 +61,6 @@ def main():
                 if check == 0:
                     sg.Popup("文件未找到")
                 else:
-                    sg.Popup(f"{file_name} 找到")
                     window_file.close()
                     break
 
@@ -93,6 +86,7 @@ def main():
             [sg.Text("首列："), sg.InputText(key="首列")],
             [sg.Text("尾列："), sg.InputText(key="尾列")],
             [sg.Button("确认")],
+            [sg.Button("返回")],
             [sg.Button("退出")]
         ]
 
@@ -100,6 +94,13 @@ def main():
 
         while True:
             event_data, values_data = window_data.read()
+            # if End_row has no input, set it to sheet.nrows
+            if values_data["尾行"] == "":
+                values_data["尾行"] = sheet.nrows
+            # if End_col has no input, set it to sheet.ncols
+            if values_data["尾列"] == "":
+                values_data["尾列"] = sheet.ncols
+
             if event_data == "确认":
                 # check if the input is valid
                 try:
@@ -117,14 +118,21 @@ def main():
                 # append data to data set
                 for i in range(int(start_row), int(end_row) + 1):
                     for j in range(int(start_col), int(end_col) + 1):
+                        # ignore the blank data
+                        if sheet.cell_value(i - 1, j - 1) == "":
+                            continue
                         data_set.append(sheet.cell_value(i - 1, j - 1))
-                sg.Popup("数据为：", data_set)
+
+                # sg.popup_scrolled("数据为：", data_set)
 
                 # ask if keep adding
                 command_add = sg.PopupYesNo("继续添加数据?")
                 if command_add == "No":
                     window_data.close()
                     break
+
+            # if event_data == "返回":
+                # window_data.close()
 
             # sys.exit the program
             elif event_data in ("退出", None):
