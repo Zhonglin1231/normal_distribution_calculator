@@ -7,127 +7,131 @@ import PySimpleGUI as sg
 import sys
 
 
-def choose_file_interface():
+figure_num = [1]
+
+
+def choose_file_interface(cumulative_color):
     # -----------------------------------------------------------------
     #                   choose file interface
     # -----------------------------------------------------------------
     # create layout_choose_file
     # choose file by clicking file
-
-    layout_file = [
-        [sg.FileBrowse(button_text="选择文件"), sg.In(key="文件名")],
-        [sg.Button("确认")],
-        [sg.Button("退出")]
-    ]
-
-    window_file = sg.Window("选择文件", layout_file)
-
     while True:
-        event_file, values_file = window_file.read()
+        layout_file = [
+            [sg.FileBrowse(button_text="选择文件"), sg.In(key="文件名")],
+            [sg.Button("确认")],
+            [sg.Button("退出")]
+        ]
 
-        if event_file == "确认":
-            # check if file exists
-            file_name = values_file["文件名"]
-            check = os.path.isfile(file_name)
-            if check == 0:
-                sg.Popup("文件未找到")
-            else:
+        window_file = sg.Window("选择文件", layout_file)
+
+        while True:
+            event_file, values_file = window_file.read()
+
+            if event_file == "确认":
+                # check if file exists
+                file_name = values_file["文件名"]
+                check = os.path.isfile(file_name)
+                if check == 0:
+                    sg.Popup("文件未找到")
+                else:
+                    window_file.close()
+                    break
+
+            elif event_file in ("退出", None):
                 window_file.close()
-                break
-
-        elif event_file in ("退出", None):
-            window_file.close()
-            sys.exit()
-
-    return file_name
+                sys.exit()
+            # calculate
+        calculation_interface(file_name, cumulative_color)
 
 
-def calculation_interface(file_name):
+
+def calculation_interface(file_name, cumulative_color):
     # -----------------------------------------------------------------
     #                   calculation interface
     # -----------------------------------------------------------------
-    # initialize data set
-    data_set = []
-    excel = xlrd.open_workbook(file_name)
-    sheet = excel.sheet_by_index(0)
-
-    # use interface to choose which specific range of data in Excel to use
-    # create layout_choose_data
-    layout_data = [
-        [sg.Text(f"行范围 (1 ~ {sheet.nrows})")],
-        [sg.Text("首行："), sg.InputText(key="首行")],
-        [sg.Text("尾行："), sg.InputText(key="尾行")],
-        [sg.Text(f"列范围 (1 ~ {sheet.ncols})")],
-        [sg.Text("首列："), sg.InputText(key="首列")],
-        [sg.Text("尾列："), sg.InputText(key="尾列")],
-        [sg.Button("确认")],
-        [sg.Button("返回")],
-        [sg.Button("退出")]
-    ]
-
-    window_data = sg.Window("选择数据", layout_data)
-
     while True:
-        event_data, values_data = window_data.read()
-        # if End_row has no input, set it to sheet.nrows
-        if values_data["尾行"] == "":
-            values_data["尾行"] = sheet.nrows
-        # if End_col has no input, set it to sheet.ncols
-        if values_data["尾列"] == "":
-            values_data["尾列"] = sheet.ncols
+        # initialize data set
+        data_set = []
+        excel = xlrd.open_workbook(file_name)
+        sheet = excel.sheet_by_index(0)
 
-        if event_data == "确认":
-            # check if the input is valid
-            try:
-                start_row = int(values_data["首行"])
-                end_row = int(values_data["尾行"])
-                start_col = int(values_data["首列"])
-                end_col = int(values_data["尾列"])
-            except ValueError:
-                sg.Popup("输入无效")
-                continue
-            if start_row > end_row or start_col > end_col or end_row > sheet.nrows or end_col > sheet.ncols:
-                sg.Popup("输入无效")
-                continue
+        # use interface to choose which specific range of data in Excel to use
+        # create layout_choose_data
+        layout_data = [
+            [sg.Text(f"行范围 (1 ~ {sheet.nrows})")],
+            [sg.Text("首行："), sg.InputText(key="首行")],
+            [sg.Text("尾行："), sg.InputText(key="尾行")],
+            [sg.Text(f"列范围 (1 ~ {sheet.ncols})")],
+            [sg.Text("首列："), sg.InputText(key="首列")],
+            [sg.Text("尾列："), sg.InputText(key="尾列")],
+            [sg.Button("确认")],
+            [sg.Button("返回")],
+            [sg.Button("退出")]
+        ]
 
-            # append data to data set
-            for i in range(int(start_row), int(end_row) + 1):
-                for j in range(int(start_col), int(end_col) + 1):
-                    # ignore the blank data
-                    if sheet.cell_value(i - 1, j - 1) == "":
-                        continue
-                    data_set.append(sheet.cell_value(i - 1, j - 1))
+        window_data = sg.Window("选择数据", layout_data)
 
-            # sg.popup_scrolled("数据为：", data_set)
+        while True:
+            event_data, values_data = window_data.read()
+            # if End_row has no input, set it to sheet.nrows
+            if values_data["尾行"] == "":
+                values_data["尾行"] = sheet.nrows
+            # if End_col has no input, set it to sheet.ncols
+            if values_data["尾列"] == "":
+                values_data["尾列"] = sheet.ncols
 
-            # ask if keep adding
-            command_add = sg.PopupYesNo("继续添加数据?")
-            if command_add == "No":
+            if event_data == "确认":
+                # check if the input is valid
+                try:
+                    start_row = int(values_data["首行"])
+                    end_row = int(values_data["尾行"])
+                    start_col = int(values_data["首列"])
+                    end_col = int(values_data["尾列"])
+                except ValueError:
+                    sg.Popup("输入无效")
+                    continue
+                if start_row > end_row or start_col > end_col or end_row > sheet.nrows or end_col > sheet.ncols:
+                    sg.Popup("输入无效")
+                    continue
+
+                # append data to data set
+                for i in range(int(start_row), int(end_row) + 1):
+                    for j in range(int(start_col), int(end_col) + 1):
+                        # ignore the blank data
+                        if sheet.cell_value(i - 1, j - 1) == "":
+                            continue
+                        data_set.append(sheet.cell_value(i - 1, j - 1))
+
+                # sg.popup_scrolled("数据为：", data_set)
+
+                # ask if keep adding
+                command_add = sg.PopupYesNo("继续添加数据?")
+                if command_add == "No":
+                    window_data.close()
+                    break
+
+            if event_data == "返回":
                 window_data.close()
-                break
+                return
 
-        if event_data == "返回":
-            window_data.close()
-            break
+            # sys.exit the program
+            elif event_data in ("退出", None):
+                window_data.close()
+                sys.exit()
 
-        # sys.exit the program
-        elif event_data in ("退出", None):
-            window_data.close()
-            sys.exit()
+        # calculate mean and variance
+        mean = sum(data_set) / len(data_set)
+        variance = sum([(i - mean) ** 2 for i in data_set]) / len(data_set)
+        standard_deviation = np.sqrt(variance)
 
-    # calculate mean and variance
-    mean = sum(data_set) / len(data_set)
-    variance = sum([(i - mean) ** 2 for i in data_set]) / len(data_set)
-    standard_deviation = np.sqrt(variance)
-
-    return mean, variance, standard_deviation, excel
+        analysis_interface(mean, variance, standard_deviation, cumulative_color, excel)
 
 
 def analysis_interface(mean, variance, standard_deviation, cumulative_color, excel):
     # -----------------------------------------------------------------
     #                   Analysis interface
     # -----------------------------------------------------------------
-
     # print the following command in the interface
     layout_check = [
         [sg.Text(f"平均值: {round(mean, 4)}")],
@@ -135,6 +139,7 @@ def analysis_interface(mean, variance, standard_deviation, cumulative_color, exc
         [sg.Text(f"标准差: {round(standard_deviation, 4)}")],
         [sg.Button("图像")],
         [sg.Button("概率计算")],
+        [sg.Button("新白板")],
         [sg.Button("返回")],
         [sg.Button("退出")]
     ]
@@ -196,16 +201,21 @@ def analysis_interface(mean, variance, standard_deviation, cumulative_color, exc
 
                 elif event_possibility == "返回":
                     window_possibility.close()
-                    break
+                    return
 
                 elif event_possibility in ("退出", None):
                     window_possibility.close()
                     sys.exit()
 
+        elif event_check == "新白板":
+            figure_num[0] += 1
+            plt.figure(figure_num[0])
+            plt.show()
+
         elif event_check == "返回":
             excel.release_resources()
             window_check.close()
-            break
+            return
 
         elif event_check in ("退出", None):
             window_check.close()
@@ -244,10 +254,6 @@ def main():
             sys.exit()
 
         # choose file
-        file_name = choose_file_interface()
+        choose_file_interface(cumulative_color)
 
-        # calculate
-        mean, variance, standard_deviation, excel = calculation_interface(file_name)
 
-        # analysis
-        analysis_interface(mean, variance, standard_deviation, cumulative_color, excel)
