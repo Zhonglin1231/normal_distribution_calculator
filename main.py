@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import scipy.stats as stats
 import PySimpleGUI as sg
 import sys
-from Chinese_version import main as Chinese_version
+from Chinese_version import main as chinese_version
 
 # create a choose language interface
 layout_language = [
@@ -110,6 +110,13 @@ if event_language == "English":
 
         while True:
             event_data, values_data = window_data.read()
+            # if End_row has no input, set it to sheet.nrows
+            if values_data["end_row"] == "":
+                values_data["end_row"] = sheet.nrows
+            # if End_col has no input, set it to sheet.ncols
+            if values_data["end_col"] == "":
+                values_data["end_col"] = sheet.ncols
+
             if event_data == "Confirm":
                 # check if the input is valid
                 try:
@@ -127,8 +134,12 @@ if event_language == "English":
                 # append data to data set
                 for i in range(int(start_row), int(end_row) + 1):
                     for j in range(int(start_col), int(end_col) + 1):
+                        # ignore the blank data
+                        if sheet.cell_value(i - 1, j - 1) == "":
+                            continue
                         data_set.append(sheet.cell_value(i - 1, j - 1))
-                sg.Popup("Data set is：", data_set)
+
+                # sg.popup_scrolled("Data set is：", data_set)
 
                 # ask if keep adding
                 command_add = sg.PopupYesNo("Keep adding?")
@@ -236,4 +247,7 @@ if event_language == "English":
 # make a chinese version of the program
 elif event_language == "简体中文":
     window_language.close()
-    Chinese_version()
+    chinese_version()
+
+
+
