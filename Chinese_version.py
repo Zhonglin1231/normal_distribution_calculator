@@ -106,6 +106,13 @@ def calculation_interface(file_name, cumulative_color):
                         # ignore the blank data
                         if sheet.cell_value(i - 1, j - 1) == "":
                             continue
+
+                        elif type(sheet.cell_value(i - 1, j - 1)) == str:
+                            sg.Popup("数据异常")
+                            # close the window and restart
+                            window_data.close()
+                            return calculation_interface(file_name, cumulative_color)
+
                         data_set.append(sheet.cell_value(i - 1, j - 1))
 
                 # sg.popup_scrolled("数据为：", data_set)
@@ -189,8 +196,6 @@ def analysis_interface(mean, variance, standard_deviation, cumulative_color, exc
             window_check["概率"].update(
                 value=f"{round(possibility, 4)}%"
             )
-
-            # print the possibility with precision to 4 decimal places
 
         elif event_check == "新白板":
             if values_check["名称"] != "":
