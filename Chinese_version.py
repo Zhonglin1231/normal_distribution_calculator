@@ -7,13 +7,37 @@ import PySimpleGUI as sg
 import sys
 from pylab import mpl
 
+
 # 设置显示中文字体
 mpl.rcParams["font.sans-serif"] = ["SimHei"]
 
 figure_num = [1]
 
 
-# what to update: give every window an appropriate size and location
+def start_interface():
+    # -----------------------------------------------------------------
+    #                   start interface
+    # -----------------------------------------------------------------
+    # create layout_start
+    layout_start = [
+        # set the specific text size and font
+        [sg.Text("正态分布分析器", font=("华文行楷", 20))],
+        [sg.Button("开始")],
+        [sg.Button("退出")]
+    ]
+
+    # create window_start, give an appropriate size and location
+    window_start = sg.Window("开始", layout_start, size=(500, 300), location=(550, 300))
+
+    # read the window_start
+    event, values = window_start.read()
+    if event == "开始":
+        window_start.close()
+
+    elif event in ("退出", None):
+        window_start.close()
+        sys.exit()
+    return
 
 
 def choose_file_interface(cumulative_color):
@@ -58,7 +82,21 @@ def calculation_interface(file_name, cumulative_color):
     while True:
         # initialize data set
         data_set = []
+
+        # read data from Excel
+        # 文件加载中
+        layout_loading = [
+            [sg.Text("文件加载中", font=("华文行楷", 20))],
+            [sg.Text("请稍等片刻", font=("华文行楷", 20))],
+        ]
+
+        window_loading = sg.Window("文件加载中", layout_loading, size=(500, 300), location=(500, 300))
+        window_loading.read(timeout=50)
+
+        # read file
         excel = xlrd.open_workbook(file_name)
+        window_loading.close()
+
         sheet = excel.sheet_by_index(0)
 
         # use interface to choose which specific range of data in Excel to use
@@ -225,30 +263,5 @@ def main():
     # initialize parameters
 
     while True:
-        # clean the screen
-        os.system("cls")
-        # -----------------------------------------------------------------
-        #                   start interface
-        # -----------------------------------------------------------------
-        # create layout_start
-        layout_start = [
-            # set the specific text size and font
-            [sg.Text("正态分布分析器", font=("华文行楷", 20))],
-            [sg.Button("开始")],
-            [sg.Button("退出")]
-        ]
-
-        # create window_start, give an appropriate size and location
-        window_start = sg.Window("开始", layout_start, size=(500, 300), location=(550, 300))
-
-        # read the window_start
-        event, values = window_start.read()
-        if event == "开始":
-            window_start.close()
-
-        elif event in ("退出", None):
-            window_start.close()
-            sys.exit()
-
-        # choose file
+        start_interface()
         choose_file_interface(cumulative_color)
