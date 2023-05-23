@@ -1,10 +1,10 @@
-import xlrd
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats
 import PySimpleGUI as sg
 import sys
+import pandas as pd
 from pylab import mpl
 
 
@@ -94,18 +94,19 @@ def calculation_interface(file_name, cumulative_color):
         window_loading.read(timeout=50)
 
         # read file
-        excel = xlrd.open_workbook(file_name)
-        window_loading.close()
+        csv = pd.read_csv(file_name, sep=',', header=38)
 
-        sheet = excel.sheet_by_index(0)
+        nrows, ncols = csv.shape
+
+        window_loading.close()
 
         # use interface to choose which specific range of data in Excel to use
         # create layout_choose_data
         layout_data = [
-            [sg.Text(f"行范围 (1 ~ {sheet.nrows})")],
+            [sg.Text(f"行范围 (1 ~ {nrows})")],
             [sg.Text("首行："), sg.InputText(key="首行")],
             [sg.Text("尾行："), sg.InputText(key="尾行")],
-            [sg.Text(f"列范围 (1 ~ {sheet.ncols})")],
+            [sg.Text(f"列范围 (1 ~ {ncols})")],
             [sg.Text("首列："), sg.InputText(key="首列")],
             [sg.Text("尾列："), sg.InputText(key="尾列")],
             [sg.Button("确认")],
@@ -119,13 +120,14 @@ def calculation_interface(file_name, cumulative_color):
             event_data, values_data = window_data.read()
             # if End_row has no input, set it to sheet.nrows
             if values_data["尾行"] == "":
-                values_data["尾行"] = sheet.nrows
+                values_data["尾行"] = nrows
             # if End_col has no input, set it to sheet.ncols
             if values_data["尾列"] == "":
-                values_data["尾列"] = sheet.ncols
+                values_data["尾列"] = ncols
 
             if event_data == "确认":
                 # check if the input is valid
+
                 try:
                     start_row = int(values_data["首行"])
                     end_row = int(values_data["尾行"])
@@ -134,24 +136,26 @@ def calculation_interface(file_name, cumulative_color):
                 except ValueError:
                     sg.Popup("输入无效")
                     continue
-                if start_row > end_row or start_col > end_col or end_row > sheet.nrows or end_col > sheet.ncols:
+                if start_row > end_row or start_col > end_col or end_row > nrows or end_col > ncols:
                     sg.Popup("输入无效")
                     continue
 
-                # append data to data set
+
+
+                # use csv.iat to append data in csv to data set
                 for i in range(int(start_row), int(end_row) + 1):
                     for j in range(int(start_col), int(end_col) + 1):
                         # ignore the blank data
-                        if sheet.cell_value(i - 1, j - 1) == "":
+                        if csv.iat[i - 1, j - 1] == "":
                             continue
 
-                        elif type(sheet.cell_value(i - 1, j - 1)) == str:
+                        elif type(csv.iat[i - 1, j - 1]) == str:
                             sg.Popup("数据异常")
                             # close the window and restart
                             window_data.close()
                             return calculation_interface(file_name, cumulative_color)
 
-                        data_set.append(sheet.cell_value(i - 1, j - 1))
+                        data_set.append(csv.iat[i - 1, j - 1])
 
                 # sg.popup_scrolled("数据为：", data_set)
 
@@ -170,16 +174,19 @@ def calculation_interface(file_name, cumulative_color):
                 window_data.close()
                 sys.exit()
 
+        # get the sum of the dataset, I don't want get nan
+        data_set = [float(i) for i in data_set if str(i) != 'nan']
+        print(data_set)
         # calculate mean and variance
         mean = sum(data_set) / len(data_set)
         # uses the technique of point estimate
         variance = sum([(i - mean) ** 2 for i in data_set]) / len(data_set)
         standard_deviation = np.sqrt(variance)
 
-        analysis_interface(mean, variance, standard_deviation, cumulative_color, excel)
+        analysis_interface(mean, variance, standard_deviation, cumulative_color, csv)
 
 
-def analysis_interface(mean, variance, standard_deviation, cumulative_color, excel):
+def analysis_interface(mean, variance, standard_deviation, cumulative_color, csv):
     # -----------------------------------------------------------------
     #                   Analysis interface
     # -----------------------------------------------------------------
@@ -248,7 +255,6 @@ def analysis_interface(mean, variance, standard_deviation, cumulative_color, exc
                 plt.show()
 
         elif event_check == "返回":
-            excel.release_resources()
             window_check.close()
             return
 
