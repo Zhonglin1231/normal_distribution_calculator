@@ -5,9 +5,15 @@ import matplotlib.pyplot as plt
 import scipy.stats as stats
 import PySimpleGUI as sg
 import sys
+from pylab import mpl
 
+# 设置显示中文字体
+mpl.rcParams["font.sans-serif"] = ["SimHei"]
 
 figure_num = [1]
+
+
+# what to update: give every window an appropriate size and location
 
 
 def choose_file_interface(cumulative_color):
@@ -23,7 +29,7 @@ def choose_file_interface(cumulative_color):
             [sg.Button("退出")]
         ]
 
-        window_file = sg.Window("选择文件", layout_file)
+        window_file = sg.Window("选择文件", layout_file, size=(500, 300), location=(500, 300))
 
         while True:
             event_file, values_file = window_file.read()
@@ -43,7 +49,6 @@ def choose_file_interface(cumulative_color):
                 sys.exit()
             # calculate
         calculation_interface(file_name, cumulative_color)
-
 
 
 def calculation_interface(file_name, cumulative_color):
@@ -70,7 +75,7 @@ def calculation_interface(file_name, cumulative_color):
             [sg.Button("退出")]
         ]
 
-        window_data = sg.Window("选择数据", layout_data)
+        window_data = sg.Window("选择数据", layout_data, size=(500, 300), location=(500, 300))
 
         while True:
             event_data, values_data = window_data.read()
@@ -122,6 +127,7 @@ def calculation_interface(file_name, cumulative_color):
 
         # calculate mean and variance
         mean = sum(data_set) / len(data_set)
+        # uses the technique of point estimate
         variance = sum([(i - mean) ** 2 for i in data_set]) / len(data_set)
         standard_deviation = np.sqrt(variance)
 
@@ -133,18 +139,21 @@ def analysis_interface(mean, variance, standard_deviation, cumulative_color, exc
     #                   Analysis interface
     # -----------------------------------------------------------------
     # print the following command in the interface
+    possibility = 0.0
+
     layout_check = [
         [sg.Text(f"平均值: {round(mean, 4)}")],
         [sg.Text(f"方差: {round(variance, 4)}")],
         [sg.Text(f"标准差: {round(standard_deviation, 4)}")],
         [sg.Button("图像")],
-        [sg.Button("概率计算")],
-        [sg.Button("新白板")],
+        [sg.Button("概率计算"), sg.Text("最低值："), sg.InputText(key="x1", size=(8, 1)),
+         sg.Text("最高值："), sg.In(key="x2", size=(8, 1)), sg.T("概率："), sg.T(f"{possibility}%", key="概率")],
+        [sg.Button("新白板"), sg.InputText(key="名称", size=(15, 1))],
         [sg.Button("返回")],
         [sg.Button("退出")]
     ]
 
-    window_check = sg.Window("检查", layout_check)
+    window_check = sg.Window("检查", layout_check, size=(500, 300), location=(500, 300))
     while True:
         event_check, values_check = window_check.read()
         if event_check == "图像":
@@ -167,50 +176,33 @@ def analysis_interface(mean, variance, standard_deviation, cumulative_color, exc
             plt.show()
 
         elif event_check == "概率计算":
-            # start a new interface and ask for x1 and x2
-            # -----------------------------------------------------------------
-            #                   Give boundary interface
-            # -----------------------------------------------------------------
-            layout_possibility = [
-                [sg.Text("最低值："), sg.InputText(key="x1")],
-                [sg.Text("最高值："), sg.InputText(key="x2")],
-                [sg.Button("确认")],
-                [sg.Button("返回")],
-                [sg.Button("退出")]
-            ]
+            try:
+                x1 = float(values_check["x1"])
+                x2 = float(values_check["x2"])
+            except ValueError:
+                sg.Popup("输入无效")
+                continue
 
-            window_possibility = sg.Window("概率计算", layout_possibility)
+            possibility = abs((stats.norm.cdf(x2, mean, standard_deviation) - stats.norm.cdf(x1, mean,
+                                                                            standard_deviation)) * 100)
 
-            while True:
-                event_possibility, values_possibility = window_possibility.read()
-                if event_possibility == "确认":
-                    # check if x1 and x2 are valid
-                    try:
-                        x1 = float(values_possibility["x1"])
-                        x2 = float(values_possibility["x2"])
-                    except ValueError:
-                        sg.Popup("输入无效")
-                        continue
+            window_check["概率"].update(
+                value=f"{round(possibility, 4)}%"
+            )
 
-                    possibility = abs((stats.norm.cdf(x2, mean, standard_deviation) - stats.norm.cdf(x1, mean,
-                                                                                                     standard_deviation)
-                                       ) * 100)
-
-                    # print the possibility with precision to 4 decimal places
-                    sg.Popup(f"概率: {round(possibility, 2)}%")
-
-                elif event_possibility == "返回":
-                    window_possibility.close()
-                    return
-
-                elif event_possibility in ("退出", None):
-                    window_possibility.close()
-                    sys.exit()
+            # print the possibility with precision to 4 decimal places
 
         elif event_check == "新白板":
-            figure_num[0] += 1
-            plt.figure(figure_num[0])
-            plt.show()
+            if values_check["名称"] != "":
+                figure_num[0] += 1
+                plt.figure(values_check["名称"])
+                plt.title(values_check["名称"])
+                plt.show()
+
+            if values_check["名称"] == "":
+                figure_num[0] += 1
+                plt.figure(figure_num[0])
+                plt.show()
 
         elif event_check == "返回":
             excel.release_resources()
@@ -241,8 +233,8 @@ def main():
             [sg.Button("退出")]
         ]
 
-        # create window_start
-        window_start = sg.Window("开始", layout_start)
+        # create window_start, give an appropriate size and location
+        window_start = sg.Window("开始", layout_start, size=(500, 300), location=(550, 300))
 
         # read the window_start
         event, values = window_start.read()
@@ -255,5 +247,3 @@ def main():
 
         # choose file
         choose_file_interface(cumulative_color)
-
-
