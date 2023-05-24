@@ -7,6 +7,11 @@ import sys
 import pandas as pd
 from pylab import mpl
 
+# set the overall theme
+sg.theme("DarkAmber")
+
+# set the specific text size in PySimpleGUI
+sg.SetOptions(text_justification="center", font=("宋体", 15))
 
 # 设置显示中文字体
 mpl.rcParams["font.sans-serif"] = ["SimHei"]
@@ -20,14 +25,14 @@ def start_interface():
     # -----------------------------------------------------------------
     # create layout_start
     layout_start = [
-        # set the specific text size and font
-        [sg.Text("正态分布分析器", font=("华文行楷", 20))],
+        # place the text "正态分布分析器" in the center
+        [sg.Text("正态分布分析器", font=("华文行楷", 30))],
         [sg.Button("开始")],
         [sg.Button("退出")]
     ]
 
     # create window_start, give an appropriate size and location
-    window_start = sg.Window("开始", layout_start, size=(500, 300), location=(550, 300))
+    window_start = sg.Window("开始", layout_start, size=(800, 500), location=(350, 200), element_justification='c')
 
     # read the window_start
     event, values = window_start.read()
@@ -54,7 +59,7 @@ def choose_file_interface(cumulative_color):
             [sg.Button("退出")]
         ]
 
-        window_file = sg.Window("选择文件", layout_file, size=(500, 300), location=(500, 300))
+        window_file = sg.Window("选择文件", layout_file, size=(800, 500), location=(350, 200), element_justification='c')
 
         while True:
 
@@ -103,7 +108,7 @@ def calculation_interface(file_name, cumulative_color):
             [sg.Text("请稍等片刻", font=("华文行楷", 20))],
         ]
 
-        window_loading = sg.Window("文件加载中", layout_loading, size=(500, 300), location=(500, 300))
+        window_loading = sg.Window("文件加载中", layout_loading, size=(800, 500), location=(350,200), element_justification='c')
         window_loading.read(timeout=50)
 
     # read file
@@ -116,7 +121,7 @@ def calculation_interface(file_name, cumulative_color):
             [sg.Button("确认")],
         ]
 
-        window_header = sg.Window("首行", layout_header, size=(500, 300), location=(500, 300))
+        window_header = sg.Window("首行", layout_header, size=(800, 500), location=(350, 200), element_justification='c')
         event_header, values_header = window_header.read()
         header = int(values_header["header"])
         window_header.close()
@@ -141,7 +146,7 @@ def calculation_interface(file_name, cumulative_color):
             [sg.Button("退出")]
         ]
 
-        window_data = sg.Window("选择数据", layout_data, size=(500, 300), location=(500, 300))
+        window_data = sg.Window("选择数据", layout_data, size=(800, 500), location=(350, 200), element_justification='c')
 
         while True:
             event_data, values_data = window_data.read()
@@ -229,7 +234,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
             [sg.Text("请稍等片刻", font=("华文行楷", 20))],
         ]
 
-        window_loading = sg.Window("文件加载中", layout_loading, size=(500, 300), location=(500, 300))
+        window_loading = sg.Window("文件加载中", layout_loading, size=(800, 500), location=(350,200), element_justification='c')
         window_loading.read(timeout=50)
 
         header = 38
@@ -250,7 +255,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
             [sg.Button("退出")]
         ]
 
-        window_data = sg.Window("选择数据", layout_data, size=(500, 300), location=(500, 300))
+        window_data = sg.Window("选择数据", layout_data, size=(800, 500), location=(350, 200), element_justification='c')
 
         while True:
             event_data, values_data = window_data.read()
@@ -323,23 +328,22 @@ def analysis_interface(mean, variance, standard_deviation, cumulative_color, csv
         [sg.Button("退出")]
     ]
 
-    window_check = sg.Window("检查", layout_check, size=(500, 300), location=(500, 300))
+    window_check = sg.Window("检查", layout_check, size=(800, 500), location=(350, 200), element_justification='c')
 
     x_label = "x"
     while True:
         event_check, values_check = window_check.read()
         if event_check == "图像":
-            plt.xlabel(x_label)
-            plt.ylabel("Probability Density")
+            plt.xlabel(x_label, size=15)
+            plt.ylabel("概率密度", size=15)
             x = np.linspace(mean - 3 * standard_deviation, mean + 3 * standard_deviation, 100)
             y = stats.norm.pdf(x, mean, standard_deviation)
 
             # display the value of the mean, variance and standard deviation on the graph on appropriate position
-            proper_separation = (1 / (3 * standard_deviation)) / 10
-            plt.text(mean, stats.norm.pdf(mean, mean, standard_deviation), f"mean = {round(mean, 4)}")
-            plt.text(mean, stats.norm.pdf(mean, mean, standard_deviation) - proper_separation, f"variance = {round(variance, 4)}")
-            plt.text(mean, stats.norm.pdf(mean, mean, standard_deviation) - 2 * proper_separation, f"standard deviation = {round(standard_deviation, 4)}")
-
+            proper_separation = [mean + standard_deviation, (1 / (3 * standard_deviation)) / 10]
+            plt.text(proper_separation[0], stats.norm.pdf(mean, mean, standard_deviation), f"平均值 = {round(mean, 4)}", size=12)
+            plt.text(proper_separation[0], stats.norm.pdf(mean, mean, standard_deviation) - proper_separation[1], f"平方差 = {round(variance, 4)}", size=12)
+            plt.text(proper_separation[0], stats.norm.pdf(mean, mean, standard_deviation) - 2 * proper_separation[1], f"标准差 = {round(standard_deviation, 4)}", size=12)
 
             # provide different colors
             if cumulative_color % 6 == 1:
@@ -375,7 +379,7 @@ def analysis_interface(mean, variance, standard_deviation, cumulative_color, csv
             if values_check["名称"] != "":
                 figure_num[0] += 1
                 plt.figure(values_check["名称"])
-                plt.title(values_check["名称"])
+                plt.title(values_check["名称"], size=20)
                 plt.show()
 
             if values_check["名称"] == "":
