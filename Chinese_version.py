@@ -49,16 +49,18 @@ def choose_file_interface(cumulative_color):
     while True:
         layout_file = [
             [sg.FileBrowse(button_text="选择文件"), sg.In(key="文件名")],
-            [sg.Button("确认")],
+            [sg.Button("自定义")],
+            [sg.Button("快速分析")],
             [sg.Button("退出")]
         ]
 
         window_file = sg.Window("选择文件", layout_file, size=(500, 300), location=(500, 300))
 
         while True:
+
             event_file, values_file = window_file.read()
 
-            if event_file == "确认":
+            if event_file == "自定义":
                 # check if file exists
                 file_name = values_file["文件名"]
                 check = os.path.isfile(file_name)
@@ -66,13 +68,24 @@ def choose_file_interface(cumulative_color):
                     sg.Popup("文件未找到")
                 else:
                     window_file.close()
-                    break
+                    calculation_interface(file_name, cumulative_color)
+
+            elif event_file == "快速分析":
+                # check if file exists
+                file_name = values_file["文件名"]
+                check = os.path.isfile(file_name)
+                if check == 0:
+                    sg.Popup("文件未找到")
+                else:
+                    window_file.close()
+                    rapid_calculation_interface(file_name, cumulative_color)
 
             elif event_file in ("退出", None):
                 window_file.close()
                 sys.exit()
+
+            break
             # calculate
-        calculation_interface(file_name, cumulative_color)
 
 
 def calculation_interface(file_name, cumulative_color):
@@ -93,8 +106,22 @@ def calculation_interface(file_name, cumulative_color):
         window_loading = sg.Window("文件加载中", layout_loading, size=(500, 300), location=(500, 300))
         window_loading.read(timeout=50)
 
-        # read file
-        csv = pd.read_csv(file_name, sep=',', header=38)
+    # read file
+
+    # customize the settings
+        # pop up a window and ask for the value of header
+        layout_header = [
+            [sg.Text("请输入要定义的首行")],
+            [sg.InputText(key="header")],
+            [sg.Button("确认")],
+        ]
+
+        window_header = sg.Window("首行", layout_header, size=(500, 300), location=(500, 300))
+        event_header, values_header = window_header.read()
+        header = int(values_header["header"])
+        window_header.close()
+
+        csv = pd.read_csv(file_name, sep=',', header=header)
 
         nrows, ncols = csv.shape
 
@@ -176,6 +203,97 @@ def calculation_interface(file_name, cumulative_color):
 
         # get the sum of the dataset, I don't want get nan
         data_set = [float(i) for i in data_set if str(i) != 'nan']
+
+        print(data_set)
+        # calculate mean and variance
+        mean = sum(data_set) / len(data_set)
+        # uses the technique of point estimate
+        variance = sum([(i - mean) ** 2 for i in data_set]) / len(data_set)
+        standard_deviation = np.sqrt(variance)
+
+        analysis_interface(mean, variance, standard_deviation, cumulative_color, csv)
+
+
+def rapid_calculation_interface(file_name, cumulative_color):
+    # -----------------------------------------------------------------
+    #                   rapid calculation interface
+    # -----------------------------------------------------------------
+    while True:
+        # initialize data set
+        data_set = []
+
+        # read data from Excel
+        # 文件加载中
+        layout_loading = [
+            [sg.Text("文件加载中", font=("华文行楷", 20))],
+            [sg.Text("请稍等片刻", font=("华文行楷", 20))],
+        ]
+
+        window_loading = sg.Window("文件加载中", layout_loading, size=(500, 300), location=(500, 300))
+        window_loading.read(timeout=50)
+
+        header = 38
+
+        csv = pd.read_csv(file_name, sep=',', header=header)
+
+        nrows, ncols = csv.shape
+
+        window_loading.close()
+
+        # use interface to choose which specific range of data in Excel to use
+        # create layout_choose_data
+        layout_data = [
+            [sg.Text(f"列范围 (1 ~ {ncols})")],
+            [sg.Text("列："), sg.InputText(key="列")],
+            [sg.Button("确认")],
+            [sg.Button("返回")],
+            [sg.Button("退出")]
+        ]
+
+        window_data = sg.Window("选择数据", layout_data, size=(500, 300), location=(500, 300))
+
+        while True:
+            event_data, values_data = window_data.read()
+            if event_data == "确认":
+                # check if the input is valid
+                try:
+                    col = int(values_data["列"])
+                except ValueError:
+                    sg.Popup("输入无效")
+                    continue
+                if col > ncols:
+                    sg.Popup("输入无效")
+                    continue
+
+                # use csv.iat to append data in csv to data set
+                for i in range(1, int(nrows)+1):
+                    # ignore the blank data
+                    if csv.iat[i - 1, col-1] == "":
+                        continue
+
+                    elif type(csv.iat[i - 1, col-1]) == str:
+                        sg.Popup("数据异常")
+                        # close the window and restart
+                        window_data.close()
+                        return rapid_calculation_interface(file_name, cumulative_color)
+
+                    data_set.append(csv.iat[i - 1, col-1])
+                # sg.popup_scrolled("数据为：", data_set)
+                window_data.close()
+                break
+
+            if event_data == "返回":
+                window_data.close()
+                return
+
+            # sys.exit the program
+            elif event_data in ("退出", None):
+                window_data.close()
+                sys.exit()
+
+        # get the sum of the dataset, I don't want get nan
+        data_set = [float(i) for i in data_set if str(i) != 'nan']
+
         print(data_set)
         # calculate mean and variance
         mean = sum(data_set) / len(data_set)
