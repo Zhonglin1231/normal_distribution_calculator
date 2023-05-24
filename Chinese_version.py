@@ -204,7 +204,7 @@ def calculation_interface(file_name, cumulative_color):
         # get the sum of the dataset, I don't want get nan
         data_set = [float(i) for i in data_set if str(i) != 'nan']
 
-        print(data_set)
+        # print(data_set)
         # calculate mean and variance
         mean = sum(data_set) / len(data_set)
         # uses the technique of point estimate
@@ -318,17 +318,28 @@ def analysis_interface(mean, variance, standard_deviation, cumulative_color, csv
         [sg.Button("图像")],
         [sg.Button("概率计算"), sg.Text("最低值："), sg.InputText(key="x1", size=(8, 1)),
          sg.Text("最高值："), sg.In(key="x2", size=(8, 1)), sg.T("概率："), sg.T(f"{possibility}%", key="概率")],
-        [sg.Button("新白板"), sg.InputText(key="名称", size=(15, 1))],
+        [sg.Button("新白板"), sg.InputText(key="名称", size=(15, 1)), sg.T("x轴名称："), sg.InputText(key="x轴名称", size=(15, 1))],
         [sg.Button("返回")],
         [sg.Button("退出")]
     ]
 
     window_check = sg.Window("检查", layout_check, size=(500, 300), location=(500, 300))
+
+    x_label = "x"
     while True:
         event_check, values_check = window_check.read()
         if event_check == "图像":
+            plt.xlabel(x_label)
+            plt.ylabel("Probability Density")
             x = np.linspace(mean - 3 * standard_deviation, mean + 3 * standard_deviation, 100)
             y = stats.norm.pdf(x, mean, standard_deviation)
+
+            # display the value of the mean, variance and standard deviation on the graph on appropriate position
+            proper_separation = (1 / (3 * standard_deviation)) / 10
+            plt.text(mean, stats.norm.pdf(mean, mean, standard_deviation), f"mean = {round(mean, 4)}")
+            plt.text(mean, stats.norm.pdf(mean, mean, standard_deviation) - proper_separation, f"variance = {round(variance, 4)}")
+            plt.text(mean, stats.norm.pdf(mean, mean, standard_deviation) - 2 * proper_separation, f"standard deviation = {round(standard_deviation, 4)}")
+
 
             # provide different colors
             if cumulative_color % 6 == 1:
@@ -371,6 +382,8 @@ def analysis_interface(mean, variance, standard_deviation, cumulative_color, csv
                 figure_num[0] += 1
                 plt.figure(figure_num[0])
                 plt.show()
+
+            x_label = values_check["x轴名称"]
 
         elif event_check == "返回":
             window_check.close()
