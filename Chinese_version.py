@@ -8,13 +8,20 @@ import pandas as pd
 from pylab import mpl
 
 # set the overall theme
-sg.theme("DarkAmber")
+sg.theme("LightBrown1")
+
+# show the themes of PySimpleGUI
+# sg.theme_previewer()
+
 
 # set the specific text size in PySimpleGUI
 sg.SetOptions(text_justification="center", font=("宋体", 15))
 
 # 设置显示中文字体
 mpl.rcParams["font.sans-serif"] = ["SimHei"]
+
+# fix the bug of Chinese in matplotlib
+plt.rcParams["axes.unicode_minus"] = False
 
 figure_num = [1]
 
@@ -396,13 +403,3 @@ def analysis_interface(mean, variance, standard_deviation, cumulative_color, csv
         elif event_check in ("退出", None):
             window_check.close()
             sys.exit()
-
-
-# make a main function
-def main():
-    cumulative_color = 1
-    # initialize parameters
-
-    while True:
-        start_interface()
-        choose_file_interface(cumulative_color)
