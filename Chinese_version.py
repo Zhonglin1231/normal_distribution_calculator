@@ -26,118 +26,24 @@ plt.rcParams["axes.unicode_minus"] = False
 figure_num = [1]
 
 
-def calculation_interface(file_name, cumulative_color):
-    # -----------------------------------------------------------------
-    #                   calculation interface
-    # -----------------------------------------------------------------
-    while True:
-        # initialize data set
-        data_set = []
 
-        # read file
 
-        # customize the settings
-        # pop up a window and ask for the value of header
-        layout_header = [
-            [sg.Text("请输入要定义的首行")],
-            [sg.InputText(key="header")],
-            [sg.Button("确认")],
-        ]
 
-        window_header = sg.Window("首行", layout_header, size=(800, 500), location=(350, 200),
-                                  element_justification='c')
-        event_header, values_header = window_header.read()
-        header = int(values_header["header"])
-        window_header.close()
+def calculation(data_set, window_data, col):
+    # use csv.iat to append data in csv to data set
 
-        csv = pd.read_csv(file_name, sep=',', header=header)
+    mean = sum(data_set) / len(data_set)
+    # uses the technique of point estimate
+    variance = sum([(i - mean) ** 2 for i in data_set]) / len(data_set)
+    standard_deviation = np.sqrt(variance)
 
-        nrows, ncols = csv.shape
+    # update all elements in the window
+    window_data["第几列"].update(f"第{col}列数据为：")
+    window_data["平均值"].update(f"平均值: {round(mean, 4):<8}")
+    window_data["平方差"].update(f"平方差: {round(variance, 4):<8}")
+    window_data["标准差"].update(f"标准差: {round(standard_deviation, 4):<8}")
 
-        # use interface to choose which specific range of data in Excel to use
-        # create layout_choose_data
-        layout_data = [
-            [sg.Text(f"行范围 (1 ~ {nrows})")],
-            [sg.Text("首行："), sg.InputText(key="首行")],
-            [sg.Text("尾行："), sg.InputText(key="尾行")],
-            [sg.Text(f"列范围 (1 ~ {ncols})")],
-            [sg.Text("首列："), sg.InputText(key="首列")],
-            [sg.Text("尾列："), sg.InputText(key="尾列")],
-            [sg.Button("确认")],
-            [sg.Button("返回")],
-            [sg.Button("退出")]
-        ]
-
-        window_data = sg.Window("选择数据", layout_data, size=(800, 500), location=(350, 200),
-                                element_justification='c')
-
-        while True:
-            event_data, values_data = window_data.read()
-            # if End_row has no input, set it to sheet.nrows
-            if values_data["尾行"] == "":
-                values_data["尾行"] = nrows
-            # if End_col has no input, set it to sheet.ncols
-            if values_data["尾列"] == "":
-                values_data["尾列"] = ncols
-
-            if event_data == "确认":
-                # data if the input is valid
-
-                try:
-                    start_row = int(values_data["首行"])
-                    end_row = int(values_data["尾行"])
-                    start_col = int(values_data["首列"])
-                    end_col = int(values_data["尾列"])
-                except ValueError:
-                    sg.Popup("输入无效")
-                    continue
-                if start_row > end_row or start_col > end_col or end_row > nrows or end_col > ncols:
-                    sg.Popup("输入无效")
-                    continue
-
-                # use csv.iat to append data in csv to data set
-                for i in range(int(start_row), int(end_row) + 1):
-                    for j in range(int(start_col), int(end_col) + 1):
-                        # ignore the blank data
-                        if csv.iat[i - 1, j - 1] == "":
-                            continue
-
-                        elif type(csv.iat[i - 1, j - 1]) == str:
-                            sg.Popup("数据异常")
-                            # close the window and restart
-                            window_data.close()
-                            return calculation_interface(file_name, cumulative_color)
-
-                        data_set.append(csv.iat[i - 1, j - 1])
-
-                # sg.popup_scrolled("数据为：", data_set)
-
-                # ask if keep adding
-                command_add = sg.PopupYesNo("继续添加数据?")
-                if command_add == "No":
-                    window_data.close()
-                    break
-
-            if event_data == "返回":
-                window_data.close()
-                return
-
-            # sys.exit the program
-            elif event_data in ("退出", None):
-                window_data.close()
-                sys.exit()
-
-        # get the sum of the dataset, I don't want get nan
-        data_set = [float(i) for i in data_set if str(i) != 'nan']
-
-        # print(data_set)
-        # calculate mean and variance
-        mean = sum(data_set) / len(data_set)
-        # uses the technique of point estimate
-        variance = sum([(i - mean) ** 2 for i in data_set]) / len(data_set)
-        standard_deviation = np.sqrt(variance)
-
-        # analysis_interface(mean, variance, standard_deviation, cumulative_color, csv)
+    return mean, variance, standard_deviation
 
 
 def rapid_calculation_interface(file_name, cumulative_color):
@@ -154,24 +60,35 @@ def rapid_calculation_interface(file_name, cumulative_color):
         standard_deviation = 1
         possibility = None
         col = 0
-
         nrows, ncols = 0, 0
+        bool_row_num = -1
+        bool_row_pow = 2
+        bool_col_num = -1
+        bool_col_pow = 2
 
         # use interface to choose which specific range of data in Excel to use
         # create layout_choose_data
         layout_data = [
             [sg.FileBrowse(button_text="新文件"), sg.In(key="新文件路径")],
-            [sg.Button("快速分析"), sg.Button("自定义")],
-            [sg.T("请提供列值...", key="请提供列值", visible=False),
-             sg.T("自定义中...", key="自定义中", visible=False)],
-            [sg.Text(f"列范围 (1 ~ {ncols})", key="列范围"), sg.Text("列："), sg.InputText(key="列"),
-             sg.Button("加载列")],
+            [sg.B("导入文件")],
+            [sg.Text("文件导入成功！", key="导入成功", visible=False)],
+            # 自定义版面
+            [sg.Text(f"行范围 (1 ~ {nrows})", key="行范围"),
+             sg.Text("首行：", key="首行T"),
+             sg.InputText(key="首行", size=(10, 1)), sg.B("尾行：", key="尾行T"),
+             sg.InputText(key="尾行", visible=False, size=(10, 1))],
+            [sg.Text(f"列范围 (1 ~ {ncols})", key="列范围"),
+             sg.Text("首列：", key="首列T"),
+             sg.InputText(key="首列", size=(10, 1)), sg.B("尾列：", key="尾列T"),
+             sg.InputText(key="尾列", visible=False, size=(10, 1))],
+            [sg.Button("自定义完成")],
+
             # 告诉用户这是第几列数据
-            [sg.Text(f"第{col}列数据为：", key="第几列")],
+            [sg.Text(f"第{col}列数据为：", key="第几列", visible=False)],
             [sg.Text(f"平均值: {round(mean, 4)}", key="平均值")],
             [sg.Text(f"平方差: {round(variance, 4)}", key="平方差")],
             [sg.Text(f"标准差: {round(standard_deviation, 4)}", key="标准差")],
-            [sg.Button("图像"), sg.InputText(key="名称", size=(15, 1)), sg.T("x轴名称："),
+            [sg.Button("生成图像"), sg.T("标题: "), sg.InputText(key="名称", size=(15, 1)), sg.T("x轴名称："),
              sg.InputText(key="x轴名称", size=(15, 1))],
             [sg.Button("概率计算"), sg.Text("最低值："), sg.InputText(key="x1", size=(8, 1)),
              sg.Text("最高值："), sg.In(key="x2", size=(8, 1)), sg.T("概率："), sg.T(f"{possibility}%", key="概率")],
@@ -183,86 +100,97 @@ def rapid_calculation_interface(file_name, cumulative_color):
 
         while True:
             event_data, values_data = window_data.read()
-            if event_data == "快速分析":
+
+            if event_data == "导入文件":
                 file_name = values_data["新文件路径"]
-                data = os.path.isfile(file_name)
-                if data == 0:
-                    sg.Popup("文件未找到")
+                if file_name == "":
+                    sg.popup("请选择文件！")
+                    continue
                 else:
+                    # read csv
                     csv = pd.read_csv(file_name, sep=',', header=header)
                     nrows, ncols = csv.shape
-                    window_data["自定义中"].update(visible=False)
-                    window_data["请提供列值"].update("请提供列值...", visible=True)
-                    window_data["列范围"].update(f"列范围 (1 ~ {ncols})")
 
-            elif event_data == "自定义":
-                # data if file exists
-                file_name = values_data["新文件路径"]
-                data = os.path.isfile(file_name)
-                if data == 0:
-                    sg.Popup("文件未找到")
-                else:
-                    calculation_interface(file_name, cumulative_color)
-                    window_data["自定义中"].update("自定义中...", visible=True)
-                    window_data["请提供列值"].update("请提供列值...", visible=False)
+                    # update the range of rows and columns, in proper position, using fstring
+                    text1 = f"行范围 (1 ~ {nrows})"
+                    text2 = f"列范围 (1 ~ {ncols})"
+                    window_data["导入成功"].update(visible=True)
+                    window_data["行范围"].update(f"{text1:<15}")
+                    window_data["列范围"].update(f"{text2:<15}")
 
-            if event_data == "加载列":
+
+            # 自定义尾行尾列
+            tf_row = int(abs((bool_row_num ** bool_row_pow - 1)) / 2) == False
+            tf_col = int(abs((bool_col_num ** bool_col_pow - 1)) / 2) == False
+            if event_data == "尾行T":
+                window_data["尾行"].update(visible=tf_row)
+                bool_row_pow += 1
+            if event_data == "尾列T":
+                window_data["尾列"].update(visible=tf_col)
+                bool_col_pow += 1
+
+            if event_data == "自定义完成":
                 data_set = []
-                # data if the input is valid
+                # check if the input is valid
                 try:
-                    col = int(values_data["列"])
+                    first_row = int(values_data["首行"])
+                    last_row = values_data["尾行"]
+                    first_col = int(values_data["首列"])
+                    last_col = values_data["尾列"]
                 except ValueError:
-                    sg.Popup("输入无效")
-                    continue
-                if col > ncols:
-                    sg.Popup("输入无效")
+                    sg.Popup("数据类型无效")
                     continue
 
-                # update 请提供列值
-                window_data["请提供列值"].update("请提供列值...", visible=False)
+                if first_row > nrows or first_col > ncols:
+                    sg.Popup("输入无效")
+                    continue
 
-                # use csv.iat to append data in csv to data set
-                for i in range(1, int(nrows) + 1):
-                    # ignore the blank data
-                    if csv.iat[i - 1, col - 1] == "":
-                        continue
+                # update 导入成功
+                window_data["导入成功"].update(visible=False)
 
-                    elif type(csv.iat[i - 1, col - 1]) == str:
-                        sg.Popup("数据异常")
-                        # close the window and restart
-                        window_data.close()
-                        return rapid_calculation_interface(file_name, cumulative_color)
+                if last_row == '':
+                    last_row = nrows
 
-                    data_set.append(csv.iat[i - 1, col - 1])
-                # sg.popup_scrolled("数据为：", data_set)
+                if last_col == '':
+                    last_col = first_col
+
+                # append data to data_set
+                for i in range(first_row - 38 - 7, last_row + 1):
+                    for j in range(first_col, last_col + 1):
+
+                        # ignore the blank data
+                        if csv.iat[i - 1, j - 1] == "":
+                            continue
+
+                        # check if the data is string
+                        elif type(csv.iat[i - 1, j - 1]) == str:
+                            sg.Popup("数据异常")
+                            # close the window and restart
+                            window_data.close()
+                            return rapid_calculation_interface(file_name, cumulative_color)
+
+                        data_set.append(csv.iat[i - 1, j - 1])
+
                 data_set = [float(i) for i in data_set if str(i) != 'nan']
 
                 print(data_set)
-                # calculate mean and variance
+
                 if len(data_set) == 0:
                     sg.Popup("请添加数据")
                     # close the window and restart
                     continue
 
-                mean = sum(data_set) / len(data_set)
-                # uses the technique of point estimate
-                variance = sum([(i - mean) ** 2 for i in data_set]) / len(data_set)
-                standard_deviation = np.sqrt(variance)
-
-                # update all elements in the window
-                window_data["第几列"].update(f"第{col}列数据为：")
-                window_data["平均值"].update(f"平均值: {round(mean, 4)}")
-                window_data["平方差"].update(f"平方差: {round(variance, 4)}")
-                window_data["标准差"].update(f"标准差: {round(standard_deviation, 4)}")
+                # do calculation
+                mean, variance, standard_deviation = calculation(data_set, window_data, col)
 
             # sys.exit the program
-            elif event_data in ("退出", None):
+            if event_data in ("退出", None):
                 window_data.close()
                 sys.exit()
 
             # get the sum of the dataset, I don't want get nan
 
-            if event_data == "图像":
+            if event_data == "生成图像":
                 # provide different colors
                 if cumulative_color % 6 == 1:
                     color = "r"
@@ -287,11 +215,13 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 x1 = np.linspace(1, len(data_set), len(data_set))
                 y1 = data_set
                 # draw the line
-                plt.scatter(x1, y1, color="blue", s=0.5)
+                plt.scatter(x1, y1, color=color, s=0.5)
                 # label the graph
                 plt.title("各芯片数据", size=20)
                 plt.xlabel("芯片编号", size=15)
                 plt.ylabel("测量值", size=15)
+                # give grid
+                plt.grid(True)
 
                 # second graph
                 plt.subplot(2, 1, 2)
@@ -319,6 +249,11 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 plt.ylabel("概率密度", size=15)
 
                 cumulative_color += 1
+
+                # subplot adjustment
+                plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=0.5)
+                # add grid to the graph
+                plt.grid(True)
 
                 # show the graph
                 plt.show()
