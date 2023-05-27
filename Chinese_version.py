@@ -1,4 +1,3 @@
-import os
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats
@@ -104,37 +103,32 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     sg.popup("请选择文件！")
                     continue
                 else:
+                    header = values_data["表头行数"]
+                    if header == "":
+                        sg.Popup("请输入表头行数！", text_color="red")
+                        window_data.close()
+                        return rapid_calculation_interface(file_name, cumulative_color)
+                    header = int(values_data["表头行数"])
 
                     # read csv
                     if file_name[-4:] == ".csv":
-                        header = values_data["表头行数"]
-                        if header == "":
-                            sg.Popup("请输入表头行数！", text_color="red")
-                            window_data.close()
-                            return rapid_calculation_interface(file_name, cumulative_color)
-                        header = int(values_data["表头行数"])
-
-                        csv = pd.read_csv(file_name, sep=',', header=header, skip_blank_lines=False)
+                        csv = pd.read_csv(file_name, sep=',', header=header-1, skip_blank_lines=False)
                         nrows, ncols = csv.shape
-
-                        # update the range of rows and columns, in proper position, using fstring
-                        text1 = f"行范围 (1 ~ {nrows})"
-                        text2 = f"列范围 (1 ~ {ncols})"
-                        window_data["导入成功"].update("导入成功！", text_color="green")
-                        window_data["行范围"].update(f"{text1:<15}")
-                        window_data["列范围"].update(f"{text2:<15}")
 
                     # read excel
-                    else:
-                        csv = pd.read_excel(file_name)
-                        nrows, ncols = csv.shape
+                    elif file_name[-5:] == ".xlsx" or file_name[-4:] == ".xls" or file_name[-4:] == ".xlsm":
+                        # read the .xlsx or .xls or .xlsm file
+                        csv = pd.read_excel(file_name, header=header-1)
 
-                        # update the range of rows and columns, in proper position, using fstring
-                        text1 = f"行范围 (1 ~ {nrows})"
-                        text2 = f"列范围 (1 ~ {ncols})"
-                        window_data["导入成功"].update("导入成功！", text_color="green")
-                        window_data["行范围"].update(f"{text1:<15}")
-                        window_data["列范围"].update(f"{text2:<15}")
+                    # get the number of rows and columns
+                    nrows, ncols = csv.shape
+
+                    # update the range of rows and columns, in proper position, using fstring
+                    text1 = f"行范围 ({header} ~ {nrows+header})"
+                    text2 = f"列范围 (1 ~ {ncols})"
+                    window_data["导入成功"].update("导入成功！", text_color="green")
+                    window_data["行范围"].update(f"{text1:<15}")
+                    window_data["列范围"].update(f"{text2:<15}")
 
 
             # 自定义尾行尾列
@@ -149,6 +143,23 @@ def rapid_calculation_interface(file_name, cumulative_color):
 
             if event_data == "完成自定义":
                 data_set = []
+
+                # transform the input to int
+                print(values_data["首列"])
+                if type(values_data["首列"]) == str:
+                    sum_col = 0
+                    length = len(values_data["首列"])
+                    for i in values_data["首列"]:
+                        if 97 <= ord(i) <= 122:
+                            i = (ord(i) - 96)+25*(length-1)
+                        elif 65 <= ord(i) <= 90:
+                            i = (ord(i) - 64)+25*(length-1)
+                        length -= 1
+                        sum_col += i
+                    values_data["首列"] = sum_col
+                    print(values_data["首列"])
+                    print(sum_col)
+
                 # check if the input is valid
                 try:
                     first_row = int(values_data["首行"])
@@ -170,7 +181,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     last_col = first_col
 
                 # append data to data_set
-                for i in range(first_row - 41, last_row + 1):
+                for i in range(first_row - header, last_row + 1):
                     for j in range(first_col, last_col + 1):
 
                         # ignore the blank data
@@ -181,13 +192,15 @@ def rapid_calculation_interface(file_name, cumulative_color):
                         elif type(csv.iat[i - 1, j - 1]) == str:
                             if '.' in csv.iat[i - 1, j - 1]:
                                 csv.iat[i - 1, j - 1] = float(csv.iat[i - 1, j - 1])
+
                             else:
                                 sg.Popup("数据异常")
+                                # close the window and restart
                                 print(csv.iat[i - 1, j - 1])
                                 window_data.close()
                                 return rapid_calculation_interface(file_name, cumulative_color)
 
-                            # close the window and restart
+
 
 
                         data_set.append(csv.iat[i - 1, j - 1])
