@@ -266,7 +266,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 mngr.window.wm_geometry("+0+0")  # 调整窗口在屏幕上弹出的位置
 
                 # first graph
-                plt.subplot(2, 1, 1)
+                plt.subplot(2, 2, 1)
 
                 # set values of x and y
                 x1 = np.linspace(1, len(data_set), len(data_set))
@@ -281,14 +281,14 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 plt.grid(True)
 
                 # second graph
-                plt.subplot(2, 1, 2)
+                plt.subplot(2, 2, 2)
                 # set values of x and y
                 # x2 = np.linspace(mean - 3 * standard_deviation, mean + 3 * standard_deviation, 100)
                 # xmin, xmax = plt.xlim()
                 # x2 = np.linspace(xmin, xmax, 100)
 
-                x2 = np.linspace(mean - 3 * standard_deviation, mean + 3 * standard_deviation, 1000)
-                y2 = stats.norm.pdf(x2, mean, standard_deviation)
+                x2 = np.linspace(mean - 3 * standard_deviation, mean + 3 * standard_deviation, 100)
+                y2 = stats.norm.pdf(x2, loc=mean, scale=standard_deviation)
                 # y2 = (1/(standard_deviation * ((2 * 3.141592653)**0.5))) * (2.718281828**(-(((x2 - mean)**2) / (2*variance))))
 
                 x_label = values_data["x轴名称"]
@@ -306,17 +306,24 @@ def rapid_calculation_interface(file_name, cumulative_color):
                          stats.norm.pdf(mean, mean, standard_deviation) - 2 * proper_separation[1],
                          f"标准差 = {round(standard_deviation, 4)}", size=12, color=color)
 
-                # make the histogram with another y axi
-                ax2 = plt.twinx()
-                ax2.hist(data_set, bins=1200, density=True, color=color, alpha=0.5)
+
 
 
                 # draw the line
+
                 plt.plot(x2, y2, color)
                 # label the graph
                 plt.xlabel(x_label, size=15)
                 plt.title(values_data["名称"], size=20)
+                plt.grid(True)
 
+                # histogram
+                plt.subplot(2, 2, 3)
+                data = pd.Series(data_set)  # 将数据由数组转换成series形式
+                plt.hist(data, density=True, color=color, edgecolor='w', label='直方图', bins=1200)
+                data.plot(kind='kde', label='密度图')
+                # label the graph
+                plt.xlabel("测量值", size=15)
 
 
                 cumulative_color += 1
