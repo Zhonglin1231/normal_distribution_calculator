@@ -77,6 +77,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
         bool_col_num = -1
         bool_col_pow = 2
         count_size = 1
+        area = 0
 
         # use interface to choose which specific range of data in Excel to use
         # create layout_choose_data
@@ -104,7 +105,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
             [sg.Text(f"标准差: {round(standard_deviation, 4)}", key="标准差")],
             [sg.Button("生成图像"), sg.T("标题: "), sg.InputText(key="名称", size=(15, 1)), sg.T("x轴名称："),
              sg.InputText(key="x轴名称", size=(15, 1))],
-            [sg.Button("概率计算"), sg.Text("最低值："), sg.InputText(key="x1", size=(8, 1)),
+            [sg.Button("正态分布概率计算"), sg.Text("最低值："), sg.InputText(key="x1", size=(8, 1)),
              sg.Text("最高值："), sg.In(key="x2", size=(8, 1)), sg.T("概率："), sg.T(f"{possibility}%", key="概率")],
             [sg.Button("退出")]
         ]
@@ -293,7 +294,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
 
                 x_label = values_data["x轴名称"]
                 plt.xlabel(x_label, size=15)
-                plt.ylabel("概率密度", size=15)
+                plt.ylabel("正态分布拟合", size=15)
 
                 # display the value of the mean, variance and standard deviation on graph on appropriate position
                 proper_separation = [mean + standard_deviation, (1 / (3 * standard_deviation)) / 10]
@@ -315,13 +316,47 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 # label the graph
                 plt.xlabel(x_label, size=15)
                 plt.title(values_data["名称"], size=20)
+
+
                 plt.grid(True)
+                # set the length of this subplot longer
+                plt.subplot(2, 2, 3)
 
                 # histogram
-                plt.subplot(2, 2, 3)
                 data = pd.Series(data_set)  # 将数据由数组转换成series形式
-                plt.hist(data, density=True, color=color, edgecolor='w', label='直方图', bins=1200)
+                plt.hist(data_set, density=True, color="b", edgecolor='w', label='直方图', bins=120)
                 data.plot(kind='kde', label='密度图')
+
+                # let the pricision of the kde more precise
+                # sns.kdeplot(data_set, linewidth=2)
+                ax = data.plot(kind='kde', label='密度图', linewidth=2, color="r")
+
+                # get the value of the area under the curve in certain range
+                # ax = data.plot(kind='kde', label='密度图')
+                # Get all the lines used to draw density curve
+                kde_lines = ax.get_lines()[-1]
+                kde_x, kde_y = kde_lines.get_data()
+
+                # Filter for height between 5 feet (60 inches) & 6 feet (72 inches)
+                # if there are numbers in the range, then shade the area
+
+                if values_data["x1"] != "" and values_data["x2"] != "":
+                    mask = (kde_x > float(values_data["x1"])) & (kde_x < float(values_data["x2"]))
+                    filled_x, filled_y = kde_x[mask], kde_y[mask]
+
+                    # Shade the partial region
+                    ax.fill_between(filled_x, y1=filled_y, alpha=0.5, color='r')
+
+                    # Vertical lines for reference
+                    plt.axvline(x=float(values_data["x1"]), linewidth=2, linestyle='--', color="r")
+                    plt.axvline(x=float(values_data["x2"]), linewidth=2, linestyle='--', color="r")
+
+                    area = np.trapz(filled_y, filled_x)*100
+                    plt.text(proper_separation[0], stats.norm.pdf(mean, mean, standard_deviation),
+                             f"{values_data['x1']} 和 {values_data['x2']} 之间的概率为: {area.round(4)}")
+
+
+
                 # label the graph
                 plt.xlabel("测量值", size=15)
 
@@ -338,7 +373,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
 
                 figure_num[0] += 1
 
-            elif event_data == "概率计算":
+            elif event_data == "正态分布概率计算":
                 try:
                     x1 = float(values_data["x1"])
                     x2 = float(values_data["x2"])
@@ -346,8 +381,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     sg.Popup("输入无效")
                     continue
 
-                possibility = abs((stats.norm.cdf(x2, mean, standard_deviation) - stats.norm.cdf(x1, mean,
-                                                                                                 standard_deviation)) * 100)
+                possibility = abs((stats.norm.cdf(x2, mean, standard_deviation) - stats.norm.cdf(x1, mean, standard_deviation)) * 100)
 
                 window_data["概率"].update(value=f"{round(possibility, 4)}%")
 
