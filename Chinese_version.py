@@ -25,6 +25,21 @@ plt.rcParams["axes.unicode_minus"] = False
 figure_num = [1]
 
 
+def alpha_transfer(list):
+    sum_col = 0
+    length = len(list)
+    for i in list:
+        if 97 <= ord(i) <= 122:
+            i = (ord(i) - 96) + 25 * (length - 1)
+        elif 65 <= ord(i) <= 90:
+            i = (ord(i) - 64) + 25 * (length - 1)
+        else:
+            return "error"
+        length -= 1
+        sum_col += i
+    return sum_col
+
+
 def calculation(data_set, window_data, col):
     # use csv.iat to append data in csv to data set
 
@@ -61,13 +76,16 @@ def rapid_calculation_interface(file_name, cumulative_color):
         bool_row_pow = 2
         bool_col_num = -1
         bool_col_pow = 2
+        count_size = 1
 
         # use interface to choose which specific range of data in Excel to use
         # create layout_choose_data
         layout_data = [
-            [sg.Text("请先输入文件表头行数：", text_color='red'), sg.InputText(key="表头行数", size=(10, 1))],
+            [sg.T("---------------------------1---------------------------", text_color="grey")],
+            [sg.T("请先输入文件表头行数：", text_color='red'), sg.In(key="表头行数", size=(10, 1)), sg.T(size=12), sg.B("全屏")],
             [sg.FileBrowse(button_text="新文件"), sg.In(key="新文件路径")],
             [sg.Text("文件待导入...", key="导入成功", text_color="red"), sg.B("导入文件")],
+            [sg.T("---------------------------2---------------------------", text_color="grey")],
             # 自定义版面
             [sg.Text(f"行范围 (1 ~ {nrows})", key="行范围"),
              sg.Text("首行：", key="首行T"),
@@ -78,9 +96,9 @@ def rapid_calculation_interface(file_name, cumulative_color):
              sg.InputText(key="首列", size=(10, 1)), sg.B("尾列：", key="尾列T"),
              sg.InputText(key="尾列", visible=False, size=(10, 1))],
             [sg.T("自定义待确认...", key="确认自定义", text_color="red"), sg.Button("完成自定义")],
-
+            [sg.T("---------------------------3---------------------------", text_color="grey")],
             # 告诉用户这是第几列数据
-            [sg.Text(f"第{col}列数据为：", key="第几列", visible=False)],
+            [sg.Text(f"第{col}列数据为：", key="第几列")],
             [sg.Text(f"平均值: {round(mean, 4)}", key="平均值")],
             [sg.Text(f"平方差: {round(variance, 4)}", key="平方差")],
             [sg.Text(f"标准差: {round(standard_deviation, 4)}", key="标准差")],
@@ -91,7 +109,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
             [sg.Button("退出")]
         ]
 
-        window_data = sg.Window("选择数据", layout_data, size=(800, 500), location=(350, 200),
+        window_data = sg.Window("选择数据", layout_data, size=(800, 680), location=(370, 100),
                                 element_justification='c')
 
         while True:
@@ -106,19 +124,23 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     header = values_data["表头行数"]
                     if header == "":
                         sg.Popup("请输入表头行数！", text_color="red")
-                        window_data.close()
-                        return rapid_calculation_interface(file_name, cumulative_color)
+                        continue
                     header = int(values_data["表头行数"])
 
                     # read csv
                     if file_name[-4:] == ".csv":
                         csv = pd.read_csv(file_name, sep=',', header=header-1, skip_blank_lines=False)
-                        nrows, ncols = csv.shape
 
                     # read excel
                     elif file_name[-5:] == ".xlsx" or file_name[-4:] == ".xls" or file_name[-4:] == ".xlsm":
                         # read the .xlsx or .xls or .xlsm file
                         csv = pd.read_excel(file_name, header=header-1)
+
+                    # decide if the format of the file is acceptable
+                    else:
+                        sg.Popup("文件格式不兼容！")
+                        window_data.close()
+                        return rapid_calculation_interface(file_name, cumulative_color)
 
                     # get the number of rows and columns
                     nrows, ncols = csv.shape
@@ -129,7 +151,6 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     window_data["导入成功"].update("导入成功！", text_color="green")
                     window_data["行范围"].update(f"{text1:<15}")
                     window_data["列范围"].update(f"{text2:<15}")
-
 
             # 自定义尾行尾列
             tf_row = int(abs((bool_row_num ** bool_row_pow - 1)) / 2) == False
@@ -145,20 +166,14 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 data_set = []
 
                 # transform the input to int
-                print(values_data["首列"])
-                if type(values_data["首列"]) == str:
-                    sum_col = 0
-                    length = len(values_data["首列"])
-                    for i in values_data["首列"]:
-                        if 97 <= ord(i) <= 122:
-                            i = (ord(i) - 96)+25*(length-1)
-                        elif 65 <= ord(i) <= 90:
-                            i = (ord(i) - 64)+25*(length-1)
-                        length -= 1
-                        sum_col += i
-                    values_data["首列"] = sum_col
-                    print(values_data["首列"])
-                    print(sum_col)
+                # print(values_data["首列"])
+                if values_data["首列"].isalpha():
+                    #alphabet transfer to int
+                    values_data["首列"] = alpha_transfer(values_data["首列"])
+                    if values_data["首列"] == "error":
+                        sg.Popup("请输入正确的列数")
+                        continue
+                    col = values_data["首列"]
 
                 # check if the input is valid
                 try:
@@ -196,7 +211,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
                             else:
                                 sg.Popup("数据异常")
                                 # close the window and restart
-                                print(csv.iat[i - 1, j - 1])
+                                # print(csv.iat[i - 1, j - 1])
                                 window_data.close()
                                 return rapid_calculation_interface(file_name, cumulative_color)
 
@@ -207,7 +222,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
 
                 data_set = [float(i) for i in data_set if str(i) != 'nan']
 
-                print(data_set)
+                # print(data_set)
 
                 if len(data_set) == 0:
                     sg.Popup("请添加数据")
@@ -216,6 +231,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
 
                 # update 自定义完成
                 window_data["确认自定义"].update("自定义完成！", text_color="green")
+
 
                 # do calculation
                 mean, variance, standard_deviation = calculation(data_set, window_data, col)
@@ -258,7 +274,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 # draw the line
                 plt.scatter(x1, y1, color=color, s=0.5)
                 # label the graph
-                plt.title("各芯片数据", size=20)
+                plt.title(values_data["名称"], size=20)
                 plt.xlabel("芯片编号", size=15)
                 plt.ylabel("测量值", size=15)
                 # give grid
@@ -267,8 +283,17 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 # second graph
                 plt.subplot(2, 1, 2)
                 # set values of x and y
-                x2 = np.linspace(mean - 3 * standard_deviation, mean + 3 * standard_deviation, 100)
+                # x2 = np.linspace(mean - 3 * standard_deviation, mean + 3 * standard_deviation, 100)
+                # xmin, xmax = plt.xlim()
+                # x2 = np.linspace(xmin, xmax, 100)
+
+                x2 = np.linspace(mean - 3 * standard_deviation, mean + 3 * standard_deviation, 1000)
                 y2 = stats.norm.pdf(x2, mean, standard_deviation)
+                # y2 = (1/(standard_deviation * ((2 * 3.141592653)**0.5))) * (2.718281828**(-(((x2 - mean)**2) / (2*variance))))
+
+                x_label = values_data["x轴名称"]
+                plt.xlabel(x_label, size=15)
+                plt.ylabel("概率密度", size=15)
 
                 # display the value of the mean, variance and standard deviation on graph on appropriate position
                 proper_separation = [mean + standard_deviation, (1 / (3 * standard_deviation)) / 10]
@@ -281,13 +306,18 @@ def rapid_calculation_interface(file_name, cumulative_color):
                          stats.norm.pdf(mean, mean, standard_deviation) - 2 * proper_separation[1],
                          f"标准差 = {round(standard_deviation, 4)}", size=12, color=color)
 
+                # make the histogram with another y axi
+                ax2 = plt.twinx()
+                ax2.hist(data_set, bins=1200, density=True, color=color, alpha=0.5)
+
+
                 # draw the line
                 plt.plot(x2, y2, color)
                 # label the graph
-                x_label = values_data["x轴名称"]
-                plt.title(values_data["名称"], size=20)
                 plt.xlabel(x_label, size=15)
-                plt.ylabel("概率密度", size=15)
+                plt.title(values_data["名称"], size=20)
+
+
 
                 cumulative_color += 1
 
@@ -312,6 +342,15 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 possibility = abs((stats.norm.cdf(x2, mean, standard_deviation) - stats.norm.cdf(x1, mean,
                                                                                                  standard_deviation)) * 100)
 
-                window_data["概率"].update(
-                    value=f"{round(possibility, 4)}%"
-                )
+                window_data["概率"].update(value=f"{round(possibility, 4)}%")
+
+            elif event_data == "全屏":
+                if count_size == 1:
+                    # 使得窗口全屏
+                    window_data.Maximize()
+
+                elif count_size == -1:
+                    # 使得窗口恢复
+                    window_data.Normal()
+
+                count_size *= -1
