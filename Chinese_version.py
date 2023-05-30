@@ -25,8 +25,6 @@ mpl.rcParams["font.sans-serif"] = ["SimHei"]
 # fix the bug of Chinese in matplotlib
 plt.rcParams["axes.unicode_minus"] = False
 
-figure_num = [1]
-
 
 
 def alpha_transfer(list):
@@ -64,16 +62,57 @@ def calculation(data_set, window_data, col):
 def change_color(cumulative_color):
     # provide different colors
     if cumulative_color % 6 == 1:
-        color = "r"
-    elif cumulative_color % 6 == 2:
         color = "b"
-    elif cumulative_color % 6 == 3:
+    elif cumulative_color % 6 == 2:
         color = "g"
-    elif cumulative_color % 6 == 4:
+    elif cumulative_color % 6 == 3:
         color = "y"
+    elif cumulative_color % 6 == 4:
+        color = "r"
     else:
         color = "c"
     return color
+
+
+def subplot_221(data_set, values_data, spot_size, color):
+    plt.subplot(2, 2, 1)
+    plt.cla()
+    # set values of x and y
+    x1 = np.linspace(1, len(data_set), len(data_set))
+    y1 = data_set
+    # draw the line
+    plt.scatter(x1, y1, color=color, s=spot_size, alpha=0.5)
+    # label the graph
+    plt.title(values_data["名称"], size=20)
+    plt.xlabel("芯片编号", size=15)
+    plt.ylabel(values_data["x轴名称"], size=15)
+    # give grid
+    plt.grid(True)
+
+
+def subplot_223(data_corrected, values_data, hist_pre):
+    plt.subplot(2, 2, 3)
+    plt.cla()
+
+    # histogram
+    # 剔除outlier
+    data = pd.Series(data_corrected)  # 将数据由数组转换成series形式
+    # plt.hist(data_corrected, density=True, color="b", edgecolor='w', label='直方图', bins=int(values_data["滑块"]))
+    sns.distplot(data, hist=True, bins=int(hist_pre), color="r", label='正态分布曲线', fit=stats.norm)
+
+    # let the pricision of the kde more precise
+    # sns.kdeplot(data_set, linewidth=2)
+
+    # label the graph
+    plt.xlabel(values_data["x轴名称"], size=15)
+
+    # subplot adjustment
+    plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=0.5)
+    # add grid to the graph
+    plt.grid(True)
+
+    # show the graph
+    plt.show()
 
 
 def rapid_calculation_interface(file_name, cumulative_color):
@@ -101,6 +140,8 @@ def rapid_calculation_interface(file_name, cumulative_color):
         color = 'r'
         data_corrected = []
         sep_num = 0
+        hist_pre = 100
+        spot_size = 1
 
         # use interface to choose which specific range of data in Excel to use
         # create layout_choose_data
@@ -130,9 +171,8 @@ def rapid_calculation_interface(file_name, cumulative_color):
              sg.InputText(key="x轴名称", size=(15, 1))],
             [sg.Button("概率计算"), sg.Text("最低值：",key='T最低值'), sg.InputText(key="x1", size=(8, 1)),
              sg.Text("最高值：", key='T最高值'), sg.In(key="x2", size=(8, 1)), sg.T("概率：", key='T概率'), sg.T(f"{possibility}%", key="概率")],
-            [sg.T("直方图精度: "),
-             sg.Slider(range=(1, 500), default_value=100, orientation="h", size=(20, 20), key="滑块"), sg.T("散点大小: "),
-             sg.Slider(range=(1, 100), default_value=0.5, orientation="h", size=(20, 20), key="散点大小")],
+            [sg.B('--'),sg.B('-'), sg.T(f"直方图精度: {hist_pre:>3}", key="精度"), sg.B('+'), sg.B('++')],
+            [sg.B('<<'), sg.B('<'), sg.T( f" 散点大小: {spot_size:>3} ", key="散点"), sg.B('>'), sg.B('>>')],
             [sg.Button("退出", key="B退出")],
         ]
 
@@ -293,19 +333,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 mngr.window.wm_geometry("+0+0")  # 调整窗口在屏幕上弹出的位置
 
                 # first graph
-                plt.subplot(2, 2, 1)
-
-                # set values of x and y
-                x1 = np.linspace(1, len(data_set), len(data_set))
-                y1 = data_set
-                # draw the line
-                plt.scatter(x1, y1, color=color, s=values_data["散点大小"], alpha=0.5)
-                # label the graph
-                plt.title(values_data["名称"], size=20)
-                plt.xlabel("芯片编号", size=15)
-                plt.ylabel(values_data["x轴名称"], size=15)
-                # give grid
-                plt.grid(True)
+                subplot_221(data_set, values_data, spot_size, color)
 
                 # second graph
                 plt.subplot(2, 2, 2)
@@ -344,35 +372,11 @@ def rapid_calculation_interface(file_name, cumulative_color):
 
                 plt.grid(True)
                 # set the length of this subplot longer
-                plt.subplot(2, 2, 3)
-                plt.cla()
 
-                # histogram
-                # 剔除outlier
-                data = pd.Series(data_corrected)  # 将数据由数组转换成series形式
-                # plt.hist(data_corrected, density=True, color="b", edgecolor='w', label='直方图', bins=int(values_data["滑块"]))
-                sns.distplot(data, hist=True, bins=int(values_data["滑块"]), color="r", label='正态分布曲线', fit=stats.norm)
-
-
-                # let the pricision of the kde more precise
-                # sns.kdeplot(data_set, linewidth=2)
-
-
-                # label the graph
-                plt.xlabel(values_data["x轴名称"], size=15)
-
+                # third graph
+                subplot_223(data_corrected, values_data, hist_pre)
 
                 cumulative_color += 1
-
-                # subplot adjustment
-                plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=0.5)
-                # add grid to the graph
-                plt.grid(True)
-
-                # show the graph
-                plt.show()
-
-                figure_num[0] += 1
 
             if event_data == "概率计算":
                 try:
@@ -446,3 +450,37 @@ def rapid_calculation_interface(file_name, cumulative_color):
             elif event_data == "长-":
                 window_data.Size = (window_data.Size[0] - 100, window_data.Size[1])
 
+            # change the preciseness of the graph
+            elif event_data in ["+", "-", "++", "--"]:
+                if event_data == "+":
+                    hist_pre += 10
+
+                elif event_data == "-":
+                    hist_pre -= 10
+
+                elif event_data == "++":
+                    hist_pre += 50
+
+                elif event_data == "--":
+                    hist_pre -= 50
+
+                window_data["精度"].update(f"直方图精度: {hist_pre:<3}")
+                subplot_223(data_corrected, values_data, hist_pre)
+
+            # change spot size
+            elif event_data in [">", "<", ">>", "<<"]:
+                if event_data == ">":
+                    spot_size += 1
+
+                elif event_data == "<":
+                    spot_size -= 1
+
+                elif event_data == ">>":
+                    spot_size += 10
+
+                elif event_data == "<<":
+                    spot_size -= 10
+
+                subplot_221(data_set, values_data, spot_size, color)
+                window_data["散点"].update(f"散点大小: {spot_size:<3}")
+                plt.show()
