@@ -456,13 +456,19 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     hist_pre += 10
 
                 elif event_data == "-":
-                    hist_pre -= 10
+                    if hist_pre > 10:
+                        hist_pre -= 10
+                    else:
+                        sg.popup("已经是最小精度了", keep_on_top=True)
 
                 elif event_data == "++":
                     hist_pre += 50
 
                 elif event_data == "--":
-                    hist_pre -= 50
+                    if hist_pre > 50:
+                        hist_pre -= 50
+                    else:
+                        sg.popup("已经是最小精度了", keep_on_top=True)
 
                 window_data["精度"].update(f"直方图精度: {hist_pre:<3}")
                 subplot_223(data_corrected, values_data, hist_pre)
@@ -473,13 +479,19 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     spot_size += 1
 
                 elif event_data == "<":
-                    spot_size -= 1
+                    if spot_size > 1:
+                        spot_size -= 1
+                    else:
+                        sg.popup("已经是最小了", keep_on_top=True)
 
                 elif event_data == ">>":
                     spot_size += 10
 
                 elif event_data == "<<":
-                    spot_size -= 10
+                    if spot_size > 10:
+                        spot_size -= 10
+                    else:
+                        sg.popup("已经是最小了", keep_on_top=True)
 
                 subplot_221(data_set, values_data, spot_size, color)
                 window_data["散点"].update(f"散点大小: {spot_size:<3}")
