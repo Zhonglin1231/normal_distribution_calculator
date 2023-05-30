@@ -105,11 +105,12 @@ def rapid_calculation_interface(file_name, cumulative_color):
         # use interface to choose which specific range of data in Excel to use
         # create layout_choose_data
         layout_data = [
-            [sg.T("---------------------------1---------------------------", text_color="grey")],
-            [sg.T("请先输入文件表头行数：", text_color='red'), sg.In(key="表头行数", size=(10, 1)), sg.T(size=12), sg.B("全屏")],
-            [sg.FileBrowse(button_text="新文件"), sg.In(key="新文件路径")],
-            [sg.Text("文件待导入...", key="导入成功", text_color="red"), sg.B("导入文件")],
-            [sg.T("---------------------------2---------------------------", text_color="grey")],
+            [sg.B("缩小",key='缩小'), sg.B("放大",key='放大'), sg.B("长+"), sg.B("长-"), sg.B("宽-"), sg.B("宽+"), sg.B("全屏", key="全屏")],
+            [sg.T("---------------------------1---------------------------", text_color="grey", key="1")],
+            [sg.T("请先输入文件表头行数：", text_color='red', key='T表头'), sg.In(key="表头行数", size=(10, 1)), sg.T(size=8)],
+            [sg.FileBrowse(button_text="新文件",key='新文件'), sg.In(key="新文件路径")],
+            [sg.Text("文件待导入...", key="导入成功", text_color="red"), sg.B("导入文件",key='导入文件')],
+            [sg.T("---------------------------2---------------------------", text_color="grey", key="2")],
             # 自定义版面
             [sg.Text(f"行范围 (1 ~ {nrows})", key="行范围"),
              sg.Text("首行：", key="首行T"),
@@ -120,34 +121,39 @@ def rapid_calculation_interface(file_name, cumulative_color):
              sg.InputText(key="首列", size=(10, 1)), sg.B("尾列：", key="尾列T"),
              sg.InputText(key="尾列", visible=False, size=(10, 1))],
             [sg.T("自定义待确认...", key="确认自定义", text_color="red"), sg.Button("完成自定义")],
-            [sg.T("---------------------------3---------------------------", text_color="grey")],
+            [sg.T("---------------------------3---------------------------", text_color="grey", key="3")],
             # 告诉用户这是第几列数据
             [sg.Text(f"第{col}列数据为：", key="第几列")],
             [sg.Text(f"平均值: {round(mean, 4)}", key="平均值"), sg.Text(f"平方差: {round(variance, 4)}", key="平方差"),
              sg.Text(f"标准差: {round(standard_deviation, 4)}", key="标准差")],
-            [sg.T("直方图精度: "), sg.Slider(range=(1, 500), default_value=100, orientation="h", size=(30, 20), key="滑块")],
-            [sg.Button("生成图像"), sg.T("标题: "), sg.InputText(key="名称", size=(15, 1)), sg.T("x轴名称："),
+            [sg.Button("生成图像"), sg.T(" 标题: "), sg.InputText(key="名称", size=(15, 1)), sg.T("x轴名称：", key="Tx轴名称"),
              sg.InputText(key="x轴名称", size=(15, 1))],
-            [sg.Button("正态分布概率计算"), sg.Text("最低值："), sg.InputText(key="x1", size=(8, 1)),
-             sg.Text("最高值："), sg.In(key="x2", size=(8, 1)), sg.T("概率："), sg.T(f"{possibility}%", key="概率")],
-            [sg.Button("退出")]
+            [sg.Button("概率计算"), sg.Text("最低值：",key='T最低值'), sg.InputText(key="x1", size=(8, 1)),
+             sg.Text("最高值：", key='T最高值'), sg.In(key="x2", size=(8, 1)), sg.T("概率：", key='T概率'), sg.T(f"{possibility}%", key="概率")],
+            [sg.T("直方图精度: "),
+             sg.Slider(range=(1, 500), default_value=100, orientation="h", size=(20, 20), key="滑块"), sg.T("散点大小: "),
+             sg.Slider(range=(1, 100), default_value=0.5, orientation="h", size=(20, 20), key="散点大小")],
+            [sg.Button("退出", key="B退出")],
         ]
 
         window_data = sg.Window("选择数据", layout_data, size=(800, 680), location=(370, 100),
-                                element_justification='c')
+                                element_justification='c', keep_on_top=True)
 
         while True:
             event_data, values_data = window_data.read()
 
+
+
+
             if event_data == "导入文件":
                 file_name = values_data["新文件路径"]
                 if file_name == "":
-                    sg.popup("请选择文件！")
+                    sg.popup("请选择文件！", keep_on_top=True)
                     continue
                 else:
                     header = values_data["表头行数"]
                     if header == "":
-                        sg.Popup("请输入表头行数！", text_color="red")
+                        sg.Popup("请输入表头行数！", text_color="red", keep_on_top=True)
                         continue
                     header = int(values_data["表头行数"])
 
@@ -162,7 +168,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
 
                     # decide if the format of the file is acceptable
                     else:
-                        sg.Popup("文件格式不兼容！")
+                        sg.Popup("文件格式不兼容！", keep_on_top=True)
                         window_data.close()
                         return rapid_calculation_interface(file_name, cumulative_color)
 
@@ -195,7 +201,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     #alphabet transfer to int
                     values_data["首列"] = alpha_transfer(values_data["首列"])
                     if values_data["首列"] == "error":
-                        sg.Popup("请输入正确的列数")
+                        sg.Popup("请输入正确的列数", keep_on_top=True)
                         continue
                     col = values_data["首列"]
 
@@ -206,11 +212,11 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     first_col = int(values_data["首列"])
                     last_col = values_data["尾列"]
                 except ValueError:
-                    sg.Popup("数据类型无效")
+                    sg.Popup("数据类型无效", keep_on_top=True)
                     continue
 
                 if first_row > nrows or first_col > ncols:
-                    sg.Popup("输入无效")
+                    sg.Popup("输入无效", keep_on_top=True)
                     continue
 
                 if last_row == '':
@@ -233,7 +239,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
                                 csv.iat[i - 1, j - 1] = float(csv.iat[i - 1, j - 1])
 
                             else:
-                                sg.Popup("数据异常")
+                                sg.Popup("数据异常", keep_on_top=True)
                                 # close the window and restart
                                 # print(csv.iat[i - 1, j - 1])
                                 window_data.close()
@@ -249,7 +255,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 # print(data_set)
 
                 if len(data_set) == 0:
-                    sg.Popup("请添加数据")
+                    sg.Popup("请添加数据", keep_on_top=True)
                     # close the window and restart
                     continue
 
@@ -270,6 +276,9 @@ def rapid_calculation_interface(file_name, cumulative_color):
             # get the sum of the dataset, I don't want get nan
 
             if event_data == "生成图像":
+                if data_set == []:
+                    sg.Popup("请添加数据", keep_on_top=True)
+                    continue
                 sep_num = 0
                 # update 导入成功 & 自定义完成
                 window_data["导入成功"].update("新文件待导入...", text_color="red")
@@ -290,11 +299,11 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 x1 = np.linspace(1, len(data_set), len(data_set))
                 y1 = data_set
                 # draw the line
-                plt.scatter(x1, y1, color=color, s=0.5)
+                plt.scatter(x1, y1, color=color, s=values_data["散点大小"], alpha=0.5)
                 # label the graph
                 plt.title(values_data["名称"], size=20)
                 plt.xlabel("芯片编号", size=15)
-                plt.ylabel("测量值", size=15)
+                plt.ylabel(values_data["x轴名称"], size=15)
                 # give grid
                 plt.grid(True)
 
@@ -342,7 +351,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 # 剔除outlier
                 data = pd.Series(data_corrected)  # 将数据由数组转换成series形式
                 # plt.hist(data_corrected, density=True, color="b", edgecolor='w', label='直方图', bins=int(values_data["滑块"]))
-                sns.distplot(data_corrected, hist=True, bins=int(values_data["滑块"]), color="r", label='正态分布曲线', fit=stats.norm)
+                sns.distplot(data, hist=True, bins=int(values_data["滑块"]), color="r", label='正态分布曲线', fit=stats.norm)
 
 
                 # let the pricision of the kde more precise
@@ -350,7 +359,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
 
 
                 # label the graph
-                plt.xlabel("测量值", size=15)
+                plt.xlabel(values_data["x轴名称"], size=15)
 
 
                 cumulative_color += 1
@@ -365,12 +374,12 @@ def rapid_calculation_interface(file_name, cumulative_color):
 
                 figure_num[0] += 1
 
-            elif event_data == "正态分布概率计算":
+            if event_data == "概率计算":
                 try:
                     x1 = float(values_data["x1"])
                     x2 = float(values_data["x2"])
                 except ValueError:
-                    sg.Popup("输入无效")
+                    sg.Popup("输入无效", keep_on_top=True)
                     continue
 
                 possibility = abs((stats.norm.cdf(x2, mean, standard_deviation) - stats.norm.cdf(x1, mean, standard_deviation)) * 100)
@@ -406,7 +415,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     plt.show()
                     color = change_color(cumulative_color)
                     cumulative_color += 1
-                    sep_num += 1
+                    sep_num += 2
 
             elif event_data == "全屏":
                 if count_size == 1:
@@ -418,3 +427,22 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     window_data.Normal()
 
                 count_size *= -1
+
+            elif event_data == "放大":
+                window_data.Size = (window_data.Size[0] + 100, window_data.Size[1] + 100)
+
+            elif event_data == "缩小":
+                window_data.Size = (window_data.Size[0] - 100, window_data.Size[1] - 100)
+
+            elif event_data == "宽+":
+                window_data.Size = (window_data.Size[0], window_data.Size[1] + 100)
+
+            elif event_data == "宽-":
+                window_data.Size = (window_data.Size[0], window_data.Size[1] - 100)
+
+            elif event_data == "长+":
+                window_data.Size = (window_data.Size[0] + 100, window_data.Size[1])
+
+            elif event_data == "长-":
+                window_data.Size = (window_data.Size[0] - 100, window_data.Size[1])
+
