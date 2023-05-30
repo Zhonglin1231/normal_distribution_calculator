@@ -5,6 +5,9 @@ import PySimpleGUI as sg
 import sys
 import pandas as pd
 from pylab import mpl
+import seaborn as sns
+
+sns.set()
 
 # set the overall theme
 sg.theme("LightBrown1")
@@ -23,6 +26,7 @@ mpl.rcParams["font.sans-serif"] = ["SimHei"]
 plt.rcParams["axes.unicode_minus"] = False
 
 figure_num = [1]
+
 
 
 def alpha_transfer(list):
@@ -57,6 +61,21 @@ def calculation(data_set, window_data, col):
     return mean, variance, standard_deviation
 
 
+def change_color(cumulative_color):
+    # provide different colors
+    if cumulative_color % 6 == 1:
+        color = "r"
+    elif cumulative_color % 6 == 2:
+        color = "b"
+    elif cumulative_color % 6 == 3:
+        color = "g"
+    elif cumulative_color % 6 == 4:
+        color = "y"
+    else:
+        color = "c"
+    return color
+
+
 def rapid_calculation_interface(file_name, cumulative_color):
     # -----------------------------------------------------------------
     #                   rapid calculation interface
@@ -78,6 +97,10 @@ def rapid_calculation_interface(file_name, cumulative_color):
         bool_col_pow = 2
         count_size = 1
         area = 0
+        proper_separation = [0]
+        color = 'r'
+        data_corrected = []
+        sep_num = 0
 
         # use interface to choose which specific range of data in Excel to use
         # create layout_choose_data
@@ -100,9 +123,9 @@ def rapid_calculation_interface(file_name, cumulative_color):
             [sg.T("---------------------------3---------------------------", text_color="grey")],
             # 告诉用户这是第几列数据
             [sg.Text(f"第{col}列数据为：", key="第几列")],
-            [sg.Text(f"平均值: {round(mean, 4)}", key="平均值")],
-            [sg.Text(f"平方差: {round(variance, 4)}", key="平方差")],
-            [sg.Text(f"标准差: {round(standard_deviation, 4)}", key="标准差")],
+            [sg.Text(f"平均值: {round(mean, 4)}", key="平均值"), sg.Text(f"平方差: {round(variance, 4)}", key="平方差"),
+             sg.Text(f"标准差: {round(standard_deviation, 4)}", key="标准差")],
+            [sg.T("直方图精度: "), sg.Slider(range=(1, 500), default_value=100, orientation="h", size=(30, 20), key="滑块")],
             [sg.Button("生成图像"), sg.T("标题: "), sg.InputText(key="名称", size=(15, 1)), sg.T("x轴名称："),
              sg.InputText(key="x轴名称", size=(15, 1))],
             [sg.Button("正态分布概率计算"), sg.Text("最低值："), sg.InputText(key="x1", size=(8, 1)),
@@ -236,6 +259,8 @@ def rapid_calculation_interface(file_name, cumulative_color):
 
                 # do calculation
                 mean, variance, standard_deviation = calculation(data_set, window_data, col)
+                data_corrected = [i for i in data_set if i < mean + 3 * standard_deviation and i > mean - 3 * standard_deviation]
+                mean, variance, standard_deviation = calculation(data_corrected, window_data, col)
 
             # sys.exit the program
             if event_data in ("退出", None):
@@ -245,21 +270,13 @@ def rapid_calculation_interface(file_name, cumulative_color):
             # get the sum of the dataset, I don't want get nan
 
             if event_data == "生成图像":
+                sep_num = 0
                 # update 导入成功 & 自定义完成
                 window_data["导入成功"].update("新文件待导入...", text_color="red")
                 window_data["确认自定义"].update("自定义待确认...", text_color="red")
 
                 # provide different colors
-                if cumulative_color % 6 == 1:
-                    color = "r"
-                elif cumulative_color % 6 == 2:
-                    color = "b"
-                elif cumulative_color % 6 == 3:
-                    color = "g"
-                elif cumulative_color % 6 == 4:
-                    color = "y"
-                else:
-                    color = "c"
+                color = change_color(cumulative_color)
 
                 # set the size & title & position of the graph
                 plt.figure(values_data["名称"], figsize=(5, 10))
@@ -287,14 +304,13 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 # x2 = np.linspace(mean - 3 * standard_deviation, mean + 3 * standard_deviation, 100)
                 # xmin, xmax = plt.xlim()
                 # x2 = np.linspace(xmin, xmax, 100)
-
                 x2 = np.linspace(mean - 3 * standard_deviation, mean + 3 * standard_deviation, 100)
                 y2 = stats.norm.pdf(x2, loc=mean, scale=standard_deviation)
                 # y2 = (1/(standard_deviation * ((2 * 3.141592653)**0.5))) * (2.718281828**(-(((x2 - mean)**2) / (2*variance))))
 
                 x_label = values_data["x轴名称"]
                 plt.xlabel(x_label, size=15)
-                plt.ylabel("正态分布拟合", size=15)
+                plt.ylabel("正态分布对比区", size=15)
 
                 # display the value of the mean, variance and standard deviation on graph on appropriate position
                 proper_separation = [mean + standard_deviation, (1 / (3 * standard_deviation)) / 10]
@@ -317,44 +333,20 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 plt.xlabel(x_label, size=15)
                 plt.title(values_data["名称"], size=20)
 
-
                 plt.grid(True)
                 # set the length of this subplot longer
                 plt.subplot(2, 2, 3)
+                plt.cla()
 
                 # histogram
-                data = pd.Series(data_set)  # 将数据由数组转换成series形式
-                plt.hist(data_set, density=True, color="b", edgecolor='w', label='直方图', bins=120)
-                data.plot(kind='kde', label='密度图')
+                # 剔除outlier
+                data = pd.Series(data_corrected)  # 将数据由数组转换成series形式
+                # plt.hist(data_corrected, density=True, color="b", edgecolor='w', label='直方图', bins=int(values_data["滑块"]))
+                sns.distplot(data_corrected, hist=True, bins=int(values_data["滑块"]), color="r", label='正态分布曲线', fit=stats.norm)
+
 
                 # let the pricision of the kde more precise
                 # sns.kdeplot(data_set, linewidth=2)
-                ax = data.plot(kind='kde', label='密度图', linewidth=2, color="r")
-
-                # get the value of the area under the curve in certain range
-                # ax = data.plot(kind='kde', label='密度图')
-                # Get all the lines used to draw density curve
-                kde_lines = ax.get_lines()[-1]
-                kde_x, kde_y = kde_lines.get_data()
-
-                # Filter for height between 5 feet (60 inches) & 6 feet (72 inches)
-                # if there are numbers in the range, then shade the area
-
-                if values_data["x1"] != "" and values_data["x2"] != "":
-                    mask = (kde_x > float(values_data["x1"])) & (kde_x < float(values_data["x2"]))
-                    filled_x, filled_y = kde_x[mask], kde_y[mask]
-
-                    # Shade the partial region
-                    ax.fill_between(filled_x, y1=filled_y, alpha=0.5, color='r')
-
-                    # Vertical lines for reference
-                    plt.axvline(x=float(values_data["x1"]), linewidth=2, linestyle='--', color="r")
-                    plt.axvline(x=float(values_data["x2"]), linewidth=2, linestyle='--', color="r")
-
-                    area = np.trapz(filled_y, filled_x)*100
-                    plt.text(proper_separation[0], stats.norm.pdf(mean, mean, standard_deviation),
-                             f"{values_data['x1']} 和 {values_data['x2']} 之间的概率为: {area.round(4)}")
-
 
 
                 # label the graph
@@ -384,6 +376,37 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 possibility = abs((stats.norm.cdf(x2, mean, standard_deviation) - stats.norm.cdf(x1, mean, standard_deviation)) * 100)
 
                 window_data["概率"].update(value=f"{round(possibility, 4)}%")
+
+
+                data = pd.Series(data_corrected)
+                # ax = normal distribution curve
+                ax = sns.distplot(data, hist=False, kde=False,
+                                  kde_kws={'linewidth': 2},
+                                  label="密度图", fit=stats.norm)
+
+                # get the value of the area under the curve in certain range
+                # Get all the lines used to draw density curve
+                kde_lines = ax.get_lines()[-1]
+                kde_x, kde_y = kde_lines.get_data()
+
+                if values_data["x1"] != "" and values_data["x2"] != "":
+                    mask = (kde_x > float(values_data["x1"])) & (kde_x < float(values_data["x2"]))
+                    filled_x, filled_y = kde_x[mask], kde_y[mask]
+
+                    # Shade the partial region
+                    ax.fill_between(filled_x, y1=filled_y, alpha=0.5, color=color)
+
+                    # Vertical lines for reference
+                    plt.axvline(x=float(values_data["x1"]), linewidth=2, linestyle='--', color=color)
+                    plt.axvline(x=float(values_data["x2"]), linewidth=2, linestyle='--', color=color)
+
+                    area = np.trapz(filled_y, filled_x) * 100
+                    plt.text(proper_separation[0], stats.norm.pdf(mean, mean, standard_deviation)-sep_num*proper_separation[1],
+                             f"{values_data['x1']} 和 {values_data['x2']} 之间的概率为: {area.round(4)}%", size=12, color=color)
+                    plt.show()
+                    color = change_color(cumulative_color)
+                    cumulative_color += 1
+                    sep_num += 1
 
             elif event_data == "全屏":
                 if count_size == 1:
