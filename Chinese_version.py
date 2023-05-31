@@ -52,6 +52,7 @@ def calculation(data_set, window_data, col):
     variance = sum([(i - mean) ** 2 for i in data_set]) / len(data_set)
     standard_deviation = np.sqrt(variance)
 
+
     # update all elements in the window
     window_data["第几列"].update(f"第{col}列数据为：")
     window_data["平均值"].update(f"平均值: {round(mean, 4):<8}")
@@ -115,6 +116,28 @@ def subplot_223(data_corrected, values_data, hist_pre):
     # add grid to the graph
     plt.grid(True)
 
+
+def subplot_224(data_set, values_data, hist_pre):
+    plt.subplot(2, 2, 4)
+    plt.cla()
+
+    # histogram
+    # 剔除outlier
+    data = pd.Series(data_set)  # 将数据由数组转换成series形式
+    # plt.hist(data_corrected, density=True, color="b", edgecolor='w', label='直方图', bins=int(values_data["滑块"]))
+    sns.distplot(data, hist=True, bins=int(hist_pre), color="y", label='原始数据正态分布曲线', fit=stats.norm)
+
+    # let the pricision of the kde more precise
+    # sns.kdeplot(data_set, linewidth=2)
+
+    # label the graph
+    plt.xlabel(values_data["x轴名称"], size=15)
+
+    # subplot adjustment
+    plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=0.5)
+    # add grid to the graph
+    plt.grid(True)
+
     # show the graph, with icon
     plt.Figure()
     thismanager = plt.get_current_fig_manager()
@@ -149,6 +172,9 @@ def rapid_calculation_interface(file_name, cumulative_color):
         spot_size = 1
         csv = None
         graph_count = 0
+        mean_rough = 0
+        variance_rough = 0
+        standard_deviation_rough = 0
 
         # use interface to choose which specific range of data in Excel to use
         # create layout_choose_data
@@ -340,6 +366,9 @@ def rapid_calculation_interface(file_name, cumulative_color):
 
                 # do calculation
                 mean, variance, standard_deviation = calculation(data_set, window_data, values_data["首列"])
+                mean_rough = mean
+                variance_rough = variance
+                standard_deviation_rough = standard_deviation
                 data_corrected = [i for i in data_set if
                                   mean + 3 * standard_deviation > i > mean - 3 * standard_deviation]
                 mean, variance, standard_deviation = calculation(data_corrected, window_data, values_data["首列"])
@@ -408,6 +437,9 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 # third graph
                 subplot_223(data_corrected, values_data, hist_pre)
 
+                # fourth graph
+                subplot_224(data_set, values_data, hist_pre)
+
                 cumulative_color += 1
 
             if event_data == "概率计算":
@@ -422,6 +454,10 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     (stats.norm.cdf(x2, mean, standard_deviation) - stats.norm.cdf(x1, mean, standard_deviation)) * 100)
 
                 window_data["概率"].update(value=f"{round(possibility, 2)}%")
+
+                possibility_rough = abs(
+                    (stats.norm.cdf(x2, mean_rough, standard_deviation_rough) - stats.norm.cdf(x1, mean_rough,
+                                                                                               standard_deviation_rough)) * 100)
 
                 data = pd.Series(data_corrected)
 
@@ -454,6 +490,14 @@ def rapid_calculation_interface(file_name, cumulative_color):
                              stats.norm.pdf(mean, mean, standard_deviation) - sep_num * proper_separation[1],
                              f"{values_data['x1']} 和 {values_data['x2']} 之间的概率为: {area.round(4)}%", size=12,
                              color=color)
+
+
+                    plt.subplot(2, 2, 4)
+                    plt.text(proper_separation[0],
+                             stats.norm.pdf(mean_rough, mean_rough, standard_deviation_rough) - (sep_num/3) * proper_separation[1],
+                             f"{values_data['x1']} 和 {values_data['x2']} 之间的概率为: {round(possibility_rough, 2)}%", size=12,
+                             color=color)
+
                     plt.show()
                     color = change_color(cumulative_color)
                     cumulative_color += 1
@@ -498,6 +542,8 @@ def rapid_calculation_interface(file_name, cumulative_color):
 
                 window_data["精度"].update(f"直方图精度: {hist_pre:<3}")
                 subplot_223(data_corrected, values_data, hist_pre)
+                subplot_224(data_set, values_data, hist_pre)
+                plt.show()
 
             # change spot size
             elif event_data in [">", "<", ">>", "<<"] and graph_count == 1:
@@ -523,6 +569,3 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 subplot_221(data_set, values_data, spot_size, color, mean)
                 window_data["散点"].update(f"散点大小: {spot_size:<3}")
                 plt.show()
-
-
-
