@@ -193,14 +193,15 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 else:
                     # read csv
                     if file_name[-4:] == ".csv":
+                        # auto find header
                         while True:
                             try:
                                 csv = pd.read_csv(file_name, sep=',', header=header - 1, skip_blank_lines=False)
                                 csv_2 = pd.read_csv(file_name, sep=',', header=header + 300, skip_blank_lines=False)
-                                trow, tcol = csv.shape
-                                trow_2, tcol_2 = csv_2.shape
+                                nrows, ncols = csv.shape
+                                nrow_2, ncol_2 = csv_2.shape
 
-                                if tcol == tcol_2:
+                                if ncols == ncol_2:
                                     break
 
                                 header += 1
@@ -212,15 +213,12 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     elif file_name[-5:] == ".xlsx" or file_name[-4:] == ".xls" or file_name[-4:] == ".xlsm":
                         # read the .xlsx or .xls or .xlsm file
                         csv = pd.read_excel(file_name, header=header - 1)
+                        nrows, ncols = csv.shape
 
                     # decide if the format of the file is acceptable
                     else:
                         sg.Popup("文件格式不兼容！", keep_on_top=True)
-                        window_data.close()
-                        return rapid_calculation_interface(file_name, cumulative_color)
-
-                    # get the number of rows and columns
-                    nrows, ncols = csv.shape
+                        continue
 
                     # update the range of rows and columns, in proper position, using fstring
                     text1 = f"行范围 ({header} ~ {nrows + header})"
