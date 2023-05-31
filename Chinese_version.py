@@ -19,6 +19,9 @@ sg.theme("LightBrown1")
 # set the specific text size in PySimpleGUI
 sg.SetOptions(text_justification="center", font=("宋体", 15))
 
+# add an icon to the window,
+sg.SetOptions(icon='li_icon_1.ico')
+
 # 设置显示中文字体
 mpl.rcParams["font.sans-serif"] = ["SimHei"]
 
@@ -112,7 +115,10 @@ def subplot_223(data_corrected, values_data, hist_pre):
     # add grid to the graph
     plt.grid(True)
 
-    # show the graph
+    # show the graph, with icon
+    plt.Figure()
+    thismanager = plt.get_current_fig_manager()
+    thismanager.window.wm_iconbitmap("li_icon_1.ico")
     plt.show()
 
 
@@ -147,11 +153,11 @@ def rapid_calculation_interface(file_name, cumulative_color):
         # use interface to choose which specific range of data in Excel to use
         # create layout_choose_data
         layout_data = [
-            [sg.B("缩小", key='缩小'), sg.B("放大", key='放大'), sg.B("长+"), sg.B("长-"), sg.B("宽-"), sg.B("宽+"),
-             sg.B("全屏", key="全屏")],
+            [sg.B("缩小"), sg.B("放大"),
+             sg.B("全屏")],
             [sg.T("---------------------------1---------------------------", text_color="grey", key="1")],
-            [sg.FileBrowse(button_text="新文件", key='新文件'), sg.In(key="新文件路径")],
-            [sg.Text("文件待导入...", key="导入成功", text_color="red"), sg.B("导入文件", key='导入文件')],
+            [sg.FileBrowse(button_text="新文件"), sg.In(key="新文件路径")],
+            [sg.Text("文件待导入...", key="导入成功", text_color="red"), sg.B("导入文件")],
             [sg.T("---------------------------2---------------------------", text_color="grey", key="2")],
             # 自定义版面
             [sg.Text(f"行范围 (1 ~ {nrows})", key="行范围"),
@@ -176,10 +182,10 @@ def rapid_calculation_interface(file_name, cumulative_color):
              sg.T(f"{possibility}%", key="概率")],
             [sg.B('--'), sg.B('-'), sg.T(f"直方图精度: {hist_pre:>3}", key="精度"), sg.B('+'), sg.B('++')],
             [sg.B('<<'), sg.B('<'), sg.T(f" 散点大小: {spot_size:>3} ", key="散点"), sg.B('>'), sg.B('>>')],
-            [sg.Button("退出", key="B退出")],
+            [sg.Button("退出")],
         ]
 
-        window_data = sg.Window("选择数据", layout_data, size=(800, 680), location=(370, 100),
+        window_data = sg.Window("力生美数据分析", layout_data, size=(800, 680), location=(370, 100),
                                 element_justification='c', keep_on_top=True)
 
         while True:
@@ -196,11 +202,15 @@ def rapid_calculation_interface(file_name, cumulative_color):
                         # auto find header
                         while True:
                             try:
+                                print(header)
                                 csv = pd.read_csv(file_name, sep=',', header=header - 1, skip_blank_lines=False)
-                                csv_2 = pd.read_csv(file_name, sep=',', header=header + 300, skip_blank_lines=False)
+                                print("1pass")
+                                csv_2 = pd.read_csv(file_name, sep=',', header=header, skip_blank_lines=False)
+                                print("2pass")
+
                                 nrows, ncols = csv.shape
                                 nrow_2, ncol_2 = csv_2.shape
-
+                                print(ncols)
                                 if ncols == ncol_2:
                                     break
 
@@ -250,13 +260,19 @@ def rapid_calculation_interface(file_name, cumulative_color):
                         sg.Popup("请输入正确的列数", keep_on_top=True)
                         continue
                     col = values_data["首列"]
+                if values_data["尾列"].isalpha():
+                    # alphabet transfer to int
+                    values_data["尾列"] = alpha_transfer(values_data["尾列"])
+                    if values_data["尾列"] == "error":
+                        sg.Popup("请输入正确的列数", keep_on_top=True)
+                        continue
 
                 # check if the input is valid
                 try:
                     first_row = int(values_data["首行"])
-                    last_row = values_data["尾行"]
+                    last_row = (values_data["尾行"])
                     first_col = int(values_data["首列"])
-                    last_col = values_data["尾列"]
+                    last_col = (values_data["尾列"])
                 except ValueError:
                     sg.Popup("数据类型无效", keep_on_top=True)
                     continue
@@ -272,8 +288,8 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     last_col = first_col
 
                 # append data to data_set
-                for i in range(first_row - header, last_row + 1):
-                    for j in range(first_col, last_col + 1):
+                for i in range(first_row - header, int(last_row) + 1 - header):
+                    for j in range(first_col, int(last_col) + 1):
 
                         # ignore the blank data
                         if csv.iat[i - 1, j - 1] == "":
@@ -306,10 +322,10 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 window_data["确认自定义"].update("自定义完成！", text_color="green")
 
                 # do calculation
-                mean, variance, standard_deviation = calculation(data_set, window_data, col)
+                mean, variance, standard_deviation = calculation(data_set, window_data, values_data["首列"])
                 data_corrected = [i for i in data_set if
                                   mean + 3 * standard_deviation > i > mean - 3 * standard_deviation]
-                mean, variance, standard_deviation = calculation(data_corrected, window_data, col)
+                mean, variance, standard_deviation = calculation(data_corrected, window_data, values_data["首列"])
 
             # sys.exit the program
             if event_data in ("退出", None):
@@ -328,7 +344,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 # provide different colors
                 color = change_color(cumulative_color)
 
-                # set the size & title & position of the graph
+                # set the size & title & position of the graph, give a icon to the figure
                 plt.figure(values_data["名称"], figsize=(5, 10))
                 mngr = plt.get_current_fig_manager()  # 获取当前figure manager
                 mngr.window.wm_geometry("+0+0")  # 调整窗口在屏幕上弹出的位置
@@ -388,9 +404,13 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 possibility = abs(
                     (stats.norm.cdf(x2, mean, standard_deviation) - stats.norm.cdf(x1, mean, standard_deviation)) * 100)
 
-                window_data["概率"].update(value=f"{round(possibility, 4)}%")
+                window_data["概率"].update(value=f"{round(possibility, 2)}%")
 
                 data = pd.Series(data_corrected)
+
+                # change to the correct subplot
+                plt.subplot(2, 2, 3)
+
                 # ax = normal distribution curve
                 ax = sns.distplot(data, hist=False, kde=False,
                                   kde_kws={'linewidth': 2},
@@ -439,29 +459,16 @@ def rapid_calculation_interface(file_name, cumulative_color):
             elif event_data == "缩小":
                 window_data.Size = (window_data.Size[0] - 100, window_data.Size[1] - 100)
 
-            elif event_data == "宽+":
-                window_data.Size = (window_data.Size[0], window_data.Size[1] + 100)
-
-            elif event_data == "宽-":
-                window_data.Size = (window_data.Size[0], window_data.Size[1] - 100)
-
-            elif event_data == "长+":
-                window_data.Size = (window_data.Size[0] + 100, window_data.Size[1])
-
-            elif event_data == "长-":
-                window_data.Size = (window_data.Size[0] - 100, window_data.Size[1])
-
             # change the preciseness of the graph
             elif event_data in ["+", "-", "++", "--"] and graph_count == 1:
                 if event_data == "+":
-                    hist_pre += 10
+                    hist_pre += 5
 
                 elif event_data == "-":
                     if hist_pre > 10:
-                        hist_pre -= 10
+                        hist_pre -= 5
                     else:
-                        sg.popup("已经是最小精度了", keep_on_top=True)
-                        continue
+                        hist_pre = 1
 
                 elif event_data == "++":
                     hist_pre += 50
@@ -470,8 +477,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     if hist_pre > 50:
                         hist_pre -= 50
                     else:
-                        sg.popup("已经是最小精度了", keep_on_top=True)
-                        continue
+                        hist_pre = 1
 
                 window_data["精度"].update(f"直方图精度: {hist_pre:<3}")
                 subplot_223(data_corrected, values_data, hist_pre)
@@ -485,8 +491,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     if spot_size > 1:
                         spot_size -= 1
                     else:
-                        sg.popup("已经是最小了", keep_on_top=True)
-                        continue
+                        spot_size = 1
 
                 elif event_data == ">>":
                     spot_size += 10
@@ -495,9 +500,12 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     if spot_size > 10:
                         spot_size -= 10
                     else:
-                        sg.popup("已经是最小了", keep_on_top=True)
+                        spot_size = 1
                         continue
 
                 subplot_221(data_set, values_data, spot_size, color, mean)
                 window_data["散点"].update(f"散点大小: {spot_size:<3}")
                 plt.show()
+
+
+
