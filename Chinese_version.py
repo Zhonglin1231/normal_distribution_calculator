@@ -157,6 +157,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
              sg.B("全屏")],
             [sg.T("---------------------------1---------------------------", text_color="grey", key="1")],
             [sg.FileBrowse(button_text="新文件"), sg.In(key="新文件路径")],
+            [sg.T("工作簿位置: ", key="工作簿"), sg.In(key="工作簿名称", size=(15, 1))],
             [sg.Text("文件待导入...", key="导入成功", text_color="red"), sg.B("导入文件")],
             [sg.T("---------------------------2---------------------------", text_color="grey", key="2")],
             # 自定义版面
@@ -190,15 +191,25 @@ def rapid_calculation_interface(file_name, cumulative_color):
 
         while True:
             event_data, values_data = window_data.read()
-
             if event_data == "导入文件":
                 file_name = values_data["新文件路径"]
                 if file_name == "":
                     sg.popup("请选择文件！", keep_on_top=True)
                     continue
                 else:
+                    # choose which sheet to read
+                    sheet_name = values_data["工作簿名称"]
+                    if sheet_name == "":
+                        sheet_name = 1
+                    try:
+                        sheet_name = int(sheet_name) - 1
+                    except ValueError:
+                        sg.popup("请输入数字！", keep_on_top=True)
+                        continue
+
                     # read csv
                     if file_name[-4:] == ".csv":
+                        header = 1
                         # auto find header
                         while True:
                             try:
@@ -221,9 +232,15 @@ def rapid_calculation_interface(file_name, cumulative_color):
 
                     # read excel
                     elif file_name[-5:] == ".xlsx" or file_name[-4:] == ".xls" or file_name[-4:] == ".xlsm":
+                        header = 1
                         # read the .xlsx or .xls or .xlsm file
-                        csv = pd.read_excel(file_name, header=header - 1)
-                        nrows, ncols = csv.shape
+                        try:
+                            csv = pd.read_excel(file_name, header=header - 1, sheet_name=sheet_name)
+                            nrows, ncols = csv.shape
+
+                        except ValueError:
+                            sg.Popup("查无此工作簿", keep_on_top=True)
+                            continue
 
                     # decide if the format of the file is acceptable
                     else:
