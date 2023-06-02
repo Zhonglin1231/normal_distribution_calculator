@@ -142,7 +142,6 @@ def subplot_224(data_set, values_data, hist_pre):
     plt.Figure()
     thismanager = plt.get_current_fig_manager()
     thismanager.window.wm_iconbitmap("li_icon_1.ico")
-    plt.show()
 
 
 def rapid_calculation_interface(file_name, cumulative_color):
@@ -151,11 +150,11 @@ def rapid_calculation_interface(file_name, cumulative_color):
     # -----------------------------------------------------------------
     while True:
         # initialize data set
-        data_set = []
-        header = 1
-        mean = 1
-        variance = 1
-        standard_deviation = 1
+        data_set = [[1]]
+        header = []
+        mean = [1]
+        variance = [1]
+        standard_deviation = [1]
         possibility = None
         col = 0
         nrows, ncols = 0, 0
@@ -166,15 +165,15 @@ def rapid_calculation_interface(file_name, cumulative_color):
         count_size = 1
         proper_separation = [0]
         color = 'r'
-        data_corrected = []
+        data_corrected = [[1]]
         sep_num = 0
         hist_pre = 100
         spot_size = 1
         csv = None
         graph_count = 0
-        mean_rough = 0
-        variance_rough = 0
-        standard_deviation_rough = 0
+        mean_rough = [1]
+        variance_rough = [1]
+        standard_deviation_rough = [1]
 
         # use interface to choose which specific range of data in Excel to use
         # create layout_choose_data
@@ -183,7 +182,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
              sg.B("全屏")],
             [sg.T("---------------------------1---------------------------", text_color="grey", key="1")],
             [sg.FileBrowse(button_text="新文件"), sg.In(key="新文件路径")],
-            [sg.T("工作簿位置: ", key="工作簿"), sg.In(key="工作簿名称", size=(15, 1))],
+            [sg.T("工作簿编号: ", key="工作簿"), sg.In(key="工作簿名称", size=(15, 1))],
             [sg.Text("文件待导入...", key="导入成功", text_color="red"), sg.B("导入文件")],
             [sg.T("---------------------------2---------------------------", text_color="grey", key="2")],
             # 自定义版面
@@ -199,8 +198,8 @@ def rapid_calculation_interface(file_name, cumulative_color):
             [sg.T("---------------------------3---------------------------", text_color="grey", key="3")],
             # 告诉用户这是第几列数据
             [sg.Text(f"第{col}列数据为：", key="第几列")],
-            [sg.Text(f"平均值: {round(mean, 4)}", key="平均值"), sg.Text(f"平方差: {round(variance, 4)}", key="平方差"),
-             sg.Text(f"标准差: {round(standard_deviation, 4)}", key="标准差")],
+            [sg.Text(f"平均值: {round(mean[0], 4)}", key="平均值"), sg.Text(f"平方差: {round(variance[0], 4)}", key="平方差"),
+             sg.Text(f"标准差: {round(standard_deviation[0], 4)}", key="标准差")],
             [sg.Button("生成图像"), sg.T(" 标题: "), sg.InputText(key="名称", size=(15, 1)),
              sg.T("x轴名称：", key="Tx轴名称"),
              sg.InputText(key="x轴名称", size=(15, 1))],
@@ -330,6 +329,17 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 if last_col == '':
                     last_col = first_col
 
+                # append number of cols to data_set
+                for i in range(first_col, int(last_col) + 1):
+                    data_set.append([])
+                    mean.append([])
+                    variance.append([])
+                    standard_deviation.append([])
+                    data_corrected.append([])
+                    mean_rough.append([])
+                    variance_rough.append([])
+                    standard_deviation_rough.append([])
+
                 # append data to data_set
                 for i in range(first_row - header, int(last_row) + 1 - header):
                     for j in range(first_col, int(last_col) + 1):
@@ -349,10 +359,11 @@ def rapid_calculation_interface(file_name, cumulative_color):
                                 # print(csv.iat[i - 1, j - 1])
                                 window_data.close()
                                 return rapid_calculation_interface(file_name, cumulative_color)
+                        # data_set is a 2D list
+                        data_set[j-first_col].append(csv.iat[i - 1, j - 1])
 
-                        data_set.append(csv.iat[i - 1, j - 1])
-
-                data_set = [float(i) for i in data_set if str(i) != 'nan']
+                for k in range(len(data_set)):
+                    data_set[k] = [float(i) for i in data_set[k] if str(i) != 'nan']
 
                 # print(data_set)
 
@@ -365,13 +376,17 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 window_data["确认自定义"].update("自定义完成！", text_color="green")
 
                 # do calculation
-                mean, variance, standard_deviation = calculation(data_set, window_data, values_data["首列"])
-                mean_rough = mean
-                variance_rough = variance
-                standard_deviation_rough = standard_deviation
-                data_corrected = [i for i in data_set if
-                                  mean + 3 * standard_deviation > i > mean - 3 * standard_deviation]
-                mean, variance, standard_deviation = calculation(data_corrected, window_data, values_data["首列"])
+                for i in range(len(data_set)):
+                    if len(data_set[i]) == 0:
+                        continue
+                    mean[i], variance[i], standard_deviation[i] = calculation(data_set[i], window_data, str(int(values_data["首列"])+i))
+                    mean_rough[i] = mean[i]
+                    variance_rough[i] = variance[i]
+                    standard_deviation_rough[i] = standard_deviation[i]
+                    # delete the data in data[i] if the data is larger or smaller than 3*standard deviation from mean
+                    data_corrected[i] = [j for j in data_set[i] if mean[i] - 3 * standard_deviation[i] < j < mean[i] + 3 * standard_deviation[i]]
+                    mean[i], variance[i], standard_deviation[i] = calculation(data_corrected[i], window_data, str(int(values_data["首列"])+i))
+
 
             # sys.exit the program
             if event_data in ("退出", None):
@@ -379,68 +394,71 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 sys.exit()
 
             if event_data == "生成图像":
-                if not data_set:
-                    sg.Popup("请添加数据", keep_on_top=True)
-                    continue
-                sep_num = 0
-                # update 导入成功 & 自定义完成
-                window_data["导入成功"].update("新文件待导入...", text_color="red")
-                window_data["确认自定义"].update("自定义待确认...", text_color="red")
+                for i in range(len(data_set)):
+                    if not data_set[i]:
+                        sg.Popup("请添加数据", keep_on_top=True)
+                        continue
+                    sep_num = 0
+                    # update 导入成功 & 自定义完成
+                    window_data["导入成功"].update("新文件待导入...", text_color="red")
+                    window_data["确认自定义"].update("自定义待确认...", text_color="red")
 
-                # provide different colors
-                color = change_color(cumulative_color)
+                    # provide different colors
+                    color = change_color(cumulative_color)
 
-                # set the size & title & position of the graph, give a icon to the figure
-                plt.figure(values_data["名称"], figsize=(5, 10))
-                mngr = plt.get_current_fig_manager()  # 获取当前figure manager
-                mngr.window.wm_geometry("+0+0")  # 调整窗口在屏幕上弹出的位置
+                    # set the size & title & position of the graph, give a icon to the figure
+                    plt.figure(i, figsize=(5, 10))
+                    mngr = plt.get_current_fig_manager()  # 获取当前figure manager
+                    mngr.window.wm_geometry("+0+0")  # 调整窗口在屏幕上弹出的位置
 
-                # first graph
-                subplot_221(data_set, values_data, spot_size, color, mean)
+                    # first graph
+                    subplot_221(data_set[i], values_data, spot_size, color, mean[i])
 
-                # second graph
-                plt.subplot(2, 2, 2)
-                # set values of x and y
-                # x2 = np.linspace(mean - 3 * standard_deviation, mean + 3 * standard_deviation, 100)
-                # xmin, xmax = plt.xlim()
-                # x2 = np.linspace(xmin, xmax, 100)
-                x2 = np.linspace(mean - 3 * standard_deviation, mean + 3 * standard_deviation, 100)
-                y2 = stats.norm.pdf(x2, loc=mean, scale=standard_deviation)
-                # y2 = (1/(standard_deviation * ((2 * 3.141592653)**0.5))) * (2.718281828**(-(((x2 - mean)**2) / (
-                # 2*variance))))
+                    # second graph
+                    plt.subplot(2, 2, 2)
+                    # set values of x and y
+                    # x2 = np.linspace(mean - 3 * standard_deviation, mean + 3 * standard_deviation, 100)
+                    # xmin, xmax = plt.xlim()
+                    # x2 = np.linspace(xmin, xmax, 100)
+                    x2 = np.linspace(mean[i] - 3 * standard_deviation[i], mean[i] + 3 * standard_deviation[i], 100)
+                    y2 = stats.norm.pdf(x2, loc=mean[i], scale=standard_deviation[i])
+                    # y2 = (1/(standard_deviation * ((2 * 3.141592653)**0.5))) * (2.718281828**(-(((x2 - mean)**2) / (
+                    # 2*variance))))
 
-                x_label = values_data["x轴名称"]
-                plt.xlabel(x_label, size=15)
-                plt.ylabel("正态分布对比区", size=15)
+                    x_label = values_data["x轴名称"]
+                    plt.xlabel(x_label, size=15)
+                    plt.ylabel("正态分布对比区", size=15)
 
-                # display the value of the mean, variance and standard deviation on graph on appropriate position
-                proper_separation = [mean + standard_deviation, (1 / (3 * standard_deviation)) / 10]
-                plt.text(proper_separation[0], stats.norm.pdf(mean, mean, standard_deviation),
-                         f"平均值 = {round(mean, 4)}", size=12, color=color)
-                plt.text(proper_separation[0],
-                         stats.norm.pdf(mean, mean, standard_deviation) - proper_separation[1],
-                         f"平方差 = {round(variance, 4)}", size=12, color=color)
-                plt.text(proper_separation[0],
-                         stats.norm.pdf(mean, mean, standard_deviation) - 2 * proper_separation[1],
-                         f"标准差 = {round(standard_deviation, 4)}", size=12, color=color)
+                    # display the value of the mean, variance and standard deviation on graph on appropriate position
+                    proper_separation = [mean[i] + standard_deviation[i], (1 / (3 * standard_deviation[i])) / 10]
+                    plt.text(proper_separation[0], stats.norm.pdf(mean[i], mean[i], standard_deviation[i]),
+                             f"平均值 = {round(mean[i], 4)}", size=12, color=color)
+                    plt.text(proper_separation[0],
+                             stats.norm.pdf(mean[i], mean[i], standard_deviation[i]) - proper_separation[1],
+                             f"平方差 = {round(variance[i], 4)}", size=12, color=color)
+                    plt.text(proper_separation[0],
+                             stats.norm.pdf(mean[i], mean[i], standard_deviation[i]) - 2 * proper_separation[1],
+                             f"标准差 = {round(standard_deviation[i], 4)}", size=12, color=color)
 
-                # draw the line
+                    # draw the line
 
-                plt.plot(x2, y2, color)
-                # label the graph
-                plt.xlabel(x_label, size=15)
-                plt.title(values_data["名称"], size=20)
+                    plt.plot(x2, y2, color)
+                    # label the graph
+                    plt.xlabel(x_label, size=15)
+                    plt.title(values_data["名称"], size=20)
 
-                plt.grid(True)
-                # set the length of this subplot longer
+                    plt.grid(True)
+                    # set the length of this subplot longer
 
-                # third graph
-                subplot_223(data_corrected, values_data, hist_pre)
+                    # third graph
+                    subplot_223(data_corrected[i], values_data, hist_pre)
 
-                # fourth graph
-                subplot_224(data_set, values_data, hist_pre)
+                    # fourth graph
+                    subplot_224(data_set[i], values_data, hist_pre)
 
-                cumulative_color += 1
+                    cumulative_color += 1
+
+                plt.show()
 
             if event_data == "概率计算":
                 try:
@@ -450,16 +468,19 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     sg.Popup("输入无效", keep_on_top=True)
                     continue
 
+                # give select a value
+                select = int(values_data["尾列"])-int(values_data["首列"])
+
                 possibility = abs(
-                    (stats.norm.cdf(x2, mean, standard_deviation) - stats.norm.cdf(x1, mean, standard_deviation)) * 100)
+                    (stats.norm.cdf(x2, mean[select], standard_deviation[select]) - stats.norm.cdf(x1, mean[select], standard_deviation[select])) * 100)
 
                 window_data["概率"].update(value=f"{round(possibility, 2)}%")
 
                 possibility_rough = abs(
-                    (stats.norm.cdf(x2, mean_rough, standard_deviation_rough) - stats.norm.cdf(x1, mean_rough,
-                                                                                               standard_deviation_rough)) * 100)
+                    (stats.norm.cdf(x2, mean_rough[select], standard_deviation_rough[select]) - stats.norm.cdf(x1, mean_rough[select],
+                                                                                               standard_deviation_rough[select])) * 100)
 
-                data = pd.Series(data_corrected)
+                data = pd.Series(data_corrected[select])
 
                 # change to the correct subplot
                 plt.subplot(2, 2, 3)
@@ -470,7 +491,6 @@ def rapid_calculation_interface(file_name, cumulative_color):
                                   label="密度图", fit=stats.norm)
 
                 # get the value of the area under the curve in certain range
-                # Get all the lines used to draw density curve
                 kde_lines = ax.get_lines()[-1]
                 kde_x, kde_y = kde_lines.get_data()
 
@@ -487,14 +507,14 @@ def rapid_calculation_interface(file_name, cumulative_color):
 
                     area = np.trapz(filled_y, filled_x) * 100
                     plt.text(proper_separation[0],
-                             stats.norm.pdf(mean, mean, standard_deviation) - sep_num * proper_separation[1],
+                             stats.norm.pdf(mean[select], mean[select], standard_deviation[select]) - sep_num * proper_separation[1],
                              f"{values_data['x1']} 和 {values_data['x2']} 之间的概率为: {area.round(4)}%", size=12,
                              color=color)
 
 
                     plt.subplot(2, 2, 4)
                     plt.text(proper_separation[0],
-                             stats.norm.pdf(mean_rough, mean_rough, standard_deviation_rough) - (sep_num/3) * proper_separation[1],
+                             stats.norm.pdf(mean_rough[select], mean_rough[select], standard_deviation_rough[select]) - (sep_num/3) * proper_separation[1],
                              f"{values_data['x1']} 和 {values_data['x2']} 之间的概率为: {round(possibility_rough, 2)}%", size=12,
                              color=color)
 
@@ -540,9 +560,11 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     else:
                         hist_pre = 1
 
+                for i in range(len(data_set)):
+                    subplot_223(data_corrected[i], values_data, hist_pre)
+                    subplot_224(data_set[i], values_data, hist_pre)
+
                 window_data["精度"].update(f"直方图精度: {hist_pre:<3}")
-                subplot_223(data_corrected, values_data, hist_pre)
-                subplot_224(data_set, values_data, hist_pre)
                 plt.show()
 
             # change spot size
@@ -564,8 +586,9 @@ def rapid_calculation_interface(file_name, cumulative_color):
                         spot_size -= 10
                     else:
                         spot_size = 1
-                        continue
 
-                subplot_221(data_set, values_data, spot_size, color, mean)
+                for i in range(len(data_set)):
+                    subplot_221(data_set[i], values_data, spot_size, color, mean[i])
+
                 window_data["散点"].update(f"散点大小: {spot_size:<3}")
                 plt.show()
