@@ -98,7 +98,7 @@ def subplot_221(data_set, values_data, spot_size, color, mean):
 def subplot_223(data_corrected, values_data, hist_pre):
     plt.subplot(2, 2, 3)
     plt.cla()
-
+    plt.title("预处理数据")
     # histogram
     # 剔除outlier
     data = pd.Series(data_corrected)  # 将数据由数组转换成series形式
@@ -120,7 +120,7 @@ def subplot_223(data_corrected, values_data, hist_pre):
 def subplot_224(data_set, values_data, hist_pre):
     plt.subplot(2, 2, 4)
     plt.cla()
-
+    plt.title("原始数据")
     # histogram
     # 剔除outlier
     data = pd.Series(data_set)  # 将数据由数组转换成series形式
@@ -174,6 +174,9 @@ def rapid_calculation_interface(file_name, cumulative_color):
         mean_rough = [1]
         variance_rough = [1]
         standard_deviation_rough = [1]
+        last_col = 0
+        first_col = 0
+        x_coo = 0
 
         # use interface to choose which specific range of data in Excel to use
         # create layout_choose_data
@@ -387,13 +390,13 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     data_corrected[i] = [j for j in data_set[i] if mean[i] - 3 * standard_deviation[i] < j < mean[i] + 3 * standard_deviation[i]]
                     mean[i], variance[i], standard_deviation[i] = calculation(data_corrected[i], window_data, str(int(values_data["首列"])+i))
 
-
             # sys.exit the program
             if event_data in ("退出", None):
                 window_data.close()
                 sys.exit()
 
             if event_data == "生成图像":
+                x_coo = 0
                 for i in range(len(data_set)):
                     if not data_set[i]:
                         sg.Popup("请添加数据", keep_on_top=True)
@@ -407,9 +410,12 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     color = change_color(cumulative_color)
 
                     # set the size & title & position of the graph, give a icon to the figure
-                    plt.figure(i, figsize=(5, 10))
+                    plt.figure(("第" + str(first_col+i) + "列"), figsize=(8, 10))
+
+                    # 每个窗口都往右边平移
                     mngr = plt.get_current_fig_manager()  # 获取当前figure manager
-                    mngr.window.wm_geometry("+0+0")  # 调整窗口在屏幕上弹出的位置
+                    mngr.window.wm_geometry(f"+{x_coo}+{0}")  # 调整窗口在屏幕上弹出的位置
+                    x_coo += 100
 
                     # first graph
                     subplot_221(data_set[i], values_data, spot_size, color, mean[i])
@@ -469,7 +475,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     continue
 
                 # give select a value
-                select = int(values_data["尾列"])-int(values_data["首列"])
+                select = int(last_col)-first_col
 
                 possibility = abs(
                     (stats.norm.cdf(x2, mean[select], standard_deviation[select]) - stats.norm.cdf(x1, mean[select], standard_deviation[select])) * 100)
@@ -508,14 +514,14 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     area = np.trapz(filled_y, filled_x) * 100
                     plt.text(proper_separation[0],
                              stats.norm.pdf(mean[select], mean[select], standard_deviation[select]) - sep_num * proper_separation[1],
-                             f"{values_data['x1']} 和 {values_data['x2']} 之间的概率为: {area.round(4)}%", size=12,
+                             f"{values_data['x1']} ~ {values_data['x2']}: {area.round(2)}%", size=12,
                              color=color)
 
 
                     plt.subplot(2, 2, 4)
                     plt.text(proper_separation[0],
                              stats.norm.pdf(mean_rough[select], mean_rough[select], standard_deviation_rough[select]) - (sep_num/3) * proper_separation[1],
-                             f"{values_data['x1']} 和 {values_data['x2']} 之间的概率为: {round(possibility_rough, 2)}%", size=12,
+                             f"{values_data['x1']} ~ {values_data['x2']}: {round(possibility_rough, 2)}%", size=12,
                              color=color)
 
                     plt.show()
