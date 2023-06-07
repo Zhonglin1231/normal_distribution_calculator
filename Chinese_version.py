@@ -29,6 +29,10 @@ mpl.rcParams["font.sans-serif"] = ["SimHei"]
 plt.rcParams["axes.unicode_minus"] = False
 
 
+def collapse(layout, key):
+    return sg.pin(sg.Column(layout, key=key))
+
+
 def alpha_transfer(trans_list):
     sum_col = 0
     length = len(trans_list)
@@ -176,19 +180,22 @@ def rapid_calculation_interface(file_name, cumulative_color):
         standard_deviation_rough = [1]
         last_col = 0
         first_col = 0
-        x_coo = 0
 
         # use interface to choose which specific range of data in Excel to use
         # create layout_choose_data
-        layout_data = [
-            [sg.B("缩小"), sg.B("放大"),
-             sg.B("全屏")],
-            [sg.T("---------------------------1---------------------------", text_color="grey", key="1")],
-            [sg.FileBrowse(button_text="新文件"), sg.In(key="新文件路径")],
-            [sg.T("工作簿编号: ", key="工作簿"), sg.In(key="工作簿名称", size=(15, 1))],
-            [sg.Text("文件待导入...", key="导入成功", text_color="red"), sg.B("导入文件")],
-            [sg.T("---------------------------2---------------------------", text_color="grey", key="2")],
-            # 自定义版面
+        SIMBLE_RIGHT = "\u25B6"
+        SIMBLE_DOWN = "\u25BC"
+        line_1 = f"---------------------------{SIMBLE_DOWN}---------------------------"
+        line_2 = f"---------------------------{SIMBLE_RIGHT}---------------------------"
+
+
+        layout_1 = [
+            [sg.FileBrowse(button_text="新文件", key="新文件"), sg.In(key="新文件路径")],
+            [sg.T("       工作簿编号: ", key="工作簿"), sg.In(key="工作簿名称", size=(15, 1))],
+            [sg.Text("       文件待导入...", key="导入成功", text_color="red"), sg.B("导入文件")]
+        ]
+
+        layout_2 = [
             [sg.Text(f"行范围 (1 ~ {nrows})", key="行范围"),
              sg.Text("首行：", key="首行T"),
              sg.InputText(key="首行", size=(10, 1)), sg.B("尾行：", key="尾行T"),
@@ -197,8 +204,17 @@ def rapid_calculation_interface(file_name, cumulative_color):
              sg.Text("首列：", key="首列T"),
              sg.InputText(key="首列", size=(10, 1)), sg.B("尾列：", key="尾列T"),
              sg.InputText(key="尾列", visible=False, size=(10, 1))],
-            [sg.T("自定义待确认...", key="确认自定义", text_color="red"), sg.Button("完成自定义")],
-            [sg.T("---------------------------3---------------------------", text_color="grey", key="3")],
+            [sg.T("自定义待确认...", key="确认自定义", text_color="red"), sg.Button("完成自定义")]
+        ]
+
+        layout_data = [
+            [sg.B("缩小"), sg.B("放大"), sg.B("全屏")],
+            [sg.T(line_1, text_color="grey", key="-12", enable_events=True)],
+            [collapse(layout_1, "fold_1")],
+            # 自定义版面
+            [sg.T(line_2, text_color="grey", key="-22", enable_events=True)],
+            [collapse(layout_2, "fold_2")],
+            [sg.T("---------------------------3---------------------------", text_color="grey", key="-3")],
             # 告诉用户这是第几列数据
             [sg.Text(f"第{col}列数据为：", key="第几列")],
             [sg.Text(f"平均值: {round(mean[0], 4)}", key="平均值"), sg.Text(f"平方差: {round(variance[0], 4)}", key="平方差"),
@@ -210,15 +226,29 @@ def rapid_calculation_interface(file_name, cumulative_color):
              sg.Text("最高值：", key='T最高值'), sg.In(key="x2", size=(8, 1)), sg.T("概率：", key='T概率'),
              sg.T(f"{possibility}%", key="概率")],
             [sg.B('--'), sg.B('-'), sg.T(f"直方图精度: {hist_pre:>3}", key="精度"), sg.B('+'), sg.B('++')],
-            [sg.B('<<'), sg.B('<'), sg.T(f" 散点大小: {spot_size:>3} ", key="散点"), sg.B('>'), sg.B('>>')],
-            [sg.Button("退出")],
+            [sg.B('<<'), sg.B('<'), sg.T(f" 散点大小: {spot_size:>3} ", key="散点"), sg.B('>'), sg.B('>>')]
         ]
 
-        window_data = sg.Window("力生美数据分析", layout_data, size=(800, 680), location=(370, 100),
+        window_data = sg.Window("力生美数据分析", layout_data, size=(800, 680), location =(370, 100),
                                 element_justification='c', keep_on_top=True)
+
+        opened1 = True
+        opened2 = True
+
 
         while True:
             event_data, values_data = window_data.read()
+
+            if event_data == "-12":
+                opened1 = not opened1
+                window_data["-12"].update(line_1 if opened1 else line_2)
+                window_data["fold_1"].update(visible=opened1)
+
+            if event_data == "-22":
+                opened2 = not opened2
+                window_data["-22"].update(line_1 if opened2 else line_2)
+                window_data["fold_2"].update(visible=opened2)
+
             if event_data == "导入文件":
                 file_name = values_data["新文件路径"]
                 if file_name == "":
