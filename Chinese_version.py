@@ -138,7 +138,7 @@ def subplot_224(data_set, values_data, hist_pre):
     plt.xlabel(values_data["x轴名称"], size=15)
 
     # subplot adjustment
-    plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=0.5)
+    plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=0.3)
     # add grid to the graph
     plt.grid(True)
 
@@ -180,6 +180,8 @@ def rapid_calculation_interface(file_name, cumulative_color):
         standard_deviation_rough = [1]
         last_col = 0
         first_col = 0
+        opened1 = True
+        opened2 = True
 
         # use interface to choose which specific range of data in Excel to use
         # create layout_choose_data
@@ -191,7 +193,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
 
         layout_1 = [
             [sg.FileBrowse(button_text="新文件", key="新文件"), sg.In(key="新文件路径")],
-            [sg.T("       工作簿编号: ", key="工作簿"), sg.In(key="工作簿名称", size=(15, 1))],
+            [sg.T("       工作簿编号: ", key="工作簿"), sg.In(key="工作簿名称", size=(5, 1))],
             [sg.Text("       文件待导入...", key="导入成功", text_color="red"), sg.B("导入文件")]
         ]
 
@@ -212,29 +214,25 @@ def rapid_calculation_interface(file_name, cumulative_color):
             [sg.T(line_1, text_color="grey", key="-12", enable_events=True)],
             [collapse(layout_1, "fold_1")],
             # 自定义版面
-            [sg.T(line_2, text_color="grey", key="-22", enable_events=True)],
+            [sg.T(line_1, text_color="grey", key="-22", enable_events=True)],
             [collapse(layout_2, "fold_2")],
             [sg.T("---------------------------3---------------------------", text_color="grey", key="-3")],
             # 告诉用户这是第几列数据
-            [sg.Text(f"第{col}列数据为：", key="第几列")],
-            [sg.Text(f"平均值: {round(mean[0], 4)}", key="平均值"), sg.Text(f"平方差: {round(variance[0], 4)}", key="平方差"),
-             sg.Text(f"标准差: {round(standard_deviation[0], 4)}", key="标准差")],
-            [sg.Button("生成图像"), sg.T(" 标题: "), sg.InputText(key="名称", size=(15, 1)),
-             sg.T("x轴名称：", key="Tx轴名称"),
-             sg.InputText(key="x轴名称", size=(15, 1))],
-            [sg.Button("概率计算"), sg.Text("最低值：", key='T最低值'), sg.InputText(key="x1", size=(8, 1)),
-             sg.Text("最高值：", key='T最高值'), sg.In(key="x2", size=(8, 1)), sg.T("概率：", key='T概率'),
+            [sg.Text(f"第{col}列数据为：", key="第几列", font=("微软雅黑", 12))],
+            [sg.Text(f"平均值: {round(mean[0], 4)}", key="平均值", font=("微软雅黑", 12)), sg.Text(f"平方差: {round(variance[0], 4)}", key="平方差", font=("微软雅黑", 12)),
+             sg.Text(f"标准差: {round(standard_deviation[0], 4)}", key="标准差", font=("微软雅黑", 12))],
+            [sg.Button("生成图像"), sg.T(" 标题:"), sg.InputText(key="名称", size=(10, 1)),
+             sg.T("x轴名称:", key="Tx轴名称"),
+             sg.InputText(key="x轴名称", size=(10, 1)), sg.T("        ")],
+            [sg.Button("概率计算"), sg.Text("最低值:", key='T最低值'), sg.InputText(key="x1", size=(8, 1)),
+             sg.Text("最高值:", key='T最高值'), sg.In(key="x2", size=(8, 1)), sg.T("概率:", key='T概率'),
              sg.T(f"{possibility}%", key="概率")],
             [sg.B('--'), sg.B('-'), sg.T(f"直方图精度: {hist_pre:>3}", key="精度"), sg.B('+'), sg.B('++')],
             [sg.B('<<'), sg.B('<'), sg.T(f" 散点大小: {spot_size:>3} ", key="散点"), sg.B('>'), sg.B('>>')]
         ]
 
-        window_data = sg.Window("力生美数据分析", layout_data, size=(800, 680), location =(370, 100),
+        window_data = sg.Window("力生美数据分析", layout_data, size=(800, 600), location =(370, 100),
                                 element_justification='c', keep_on_top=True)
-
-        opened1 = True
-        opened2 = True
-
 
         while True:
             event_data, values_data = window_data.read()
@@ -308,7 +306,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     # update the range of rows and columns, in proper position, using fstring
                     text1 = f"行范围 ({header} ~ {nrows + header})"
                     text2 = f"列范围 (1 ~ {ncols})"
-                    window_data["导入成功"].update("导入成功！", text_color="green")
+                    window_data["导入成功"].update("       导入成功！", text_color="green")
                     window_data["行范围"].update(f"{text1:<15}")
                     window_data["列范围"].update(f"{text2:<15}")
 
@@ -440,8 +438,10 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     color = change_color(cumulative_color)
 
                     # set the size & title & position of the graph, give a icon to the figure
-                    plt.figure(("第" + str(first_col+i) + "列"), figsize=(8, 10))
-
+                    if values_data["尾列"] != '':
+                        plt.figure(("第" + str(first_col+i) + "列"), figsize=(8, 10))
+                    else:
+                        plt.figure((values_data["名称"]), figsize=(8, 10))
                     # 每个窗口都往右边平移
                     mngr = plt.get_current_fig_manager()  # 获取当前figure manager
                     mngr.window.wm_geometry(f"+{x_coo}+{0}")  # 调整窗口在屏幕上弹出的位置
@@ -522,7 +522,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 plt.subplot(2, 2, 3)
 
                 # ax = normal distribution curve
-                ax = sns.distplot(data, hist=False, kde=False,
+                ax = sns.distplot(data, kde=False,
                                   kde_kws={'linewidth': 2},
                                   label="密度图", fit=stats.norm)
 
