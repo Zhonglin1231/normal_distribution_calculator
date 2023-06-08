@@ -148,6 +148,65 @@ def subplot_224(data_set, values_data, hist_pre):
     thismanager.window.wm_iconbitmap("li_icon_1.ico")
 
 
+def global_update(window_data, font, font_size):
+    # update all elements in the window
+    window_data["缩小"].Widget.config(font=f'{font} {font_size}')
+    window_data["放大"].Widget.config(font=f'{font} {font_size}')
+    window_data["全屏"].Widget.config(font=f'{font} {font_size}')
+    window_data["-12"].Widget.config(font=f'{font} {font_size}')
+    window_data["新文件"].Widget.config(font=f'{font} {font_size}')
+    window_data["新文件路径"].Widget.config(font=f'{font} {font_size}')
+    window_data["工作簿"].Widget.config(font=f'{font} {font_size}')
+    window_data["工作簿名称"].Widget.config(font=f'{font} {font_size}')
+    window_data["导入成功"].Widget.config(font=f'{font} {font_size}')
+    window_data["导入文件"].Widget.config(font=f'{font} {font_size}')
+    window_data["-22"].Widget.config(font=f'{font} {font_size}')
+    window_data["行范围"].Widget.config(font=f'{font} {font_size}')
+    window_data["首行T"].Widget.config(font=f'{font} {font_size}')
+    window_data["首行"].Widget.config(font=f'{font} {font_size}')
+    window_data["尾行T"].Widget.config(font=f'{font} {font_size}')
+    window_data["尾行"].Widget.config(font=f'{font} {font_size}')
+    window_data["列范围"].Widget.config(font=f'{font} {font_size}')
+    window_data["首列T"].Widget.config(font=f'{font} {font_size}')
+    window_data["首列"].Widget.config(font=f'{font} {font_size}')
+    window_data["尾列T"].Widget.config(font=f'{font} {font_size}')
+    window_data["尾列"].Widget.config(font=f'{font} {font_size}')
+    window_data["确认自定义"].Widget.config(font=f'{font} {font_size}')
+    window_data["完成自定义"].Widget.config(font=f'{font} {font_size}')
+    window_data["-3"].Widget.config(font=f'{font} {font_size}')
+    window_data["第几列"].Widget.config(font=f'{font} {font_size}')
+    window_data["平均值"].Widget.config(font=f'{font} {font_size}')
+    window_data["平方差"].Widget.config(font=f'{font} {font_size}')
+    window_data["标准差"].Widget.config(font=f'{font} {font_size}')
+    window_data["生成图像"].Widget.config(font=f'{font} {font_size}')
+    window_data["名称"].Widget.config(font=f'{font} {font_size}')
+    window_data["Tx轴名称"].Widget.config(font=f'{font} {font_size}')
+    window_data["x轴名称"].Widget.config(font=f'{font} {font_size}')
+    window_data["概率计算"].Widget.config(font=f'{font} {font_size}')
+    window_data["T最低值"].Widget.config(font=f'{font} {font_size}')
+    window_data["x1"].Widget.config(font=f'{font} {font_size}')
+    window_data["T最高值"].Widget.config(font=f'{font} {font_size}')
+    window_data["x2"].Widget.config(font=f'{font} {font_size}')
+    window_data["T概率"].Widget.config(font=f'{font} {font_size}')
+    window_data["概率"].Widget.config(font=f'{font} {font_size}')
+    window_data["--"].Widget.config(font=f'{font} {font_size}')
+    window_data["-"].Widget.config(font=f'{font} {font_size}')
+    window_data["精度"].Widget.config(font=f'{font} {font_size}')
+    window_data["+"].Widget.config(font=f'{font} {font_size}')
+    window_data["++"].Widget.config(font=f'{font} {font_size}')
+    window_data["<<"].Widget.config(font=f'{font} {font_size}')
+    window_data["<"].Widget.config(font=f'{font} {font_size}')
+    window_data["散点"].Widget.config(font=f'{font} {font_size}')
+    window_data[">"].Widget.config(font=f'{font} {font_size}')
+    window_data[">>"].Widget.config(font=f'{font} {font_size}')
+    window_data["空格1"].Widget.config(font=f'{font} {font_size}')
+    window_data["T标题"].Widget.config(font=f'{font} {font_size}')
+    window_data["字体+"].Widget.config(font=f'{font} {font_size}')
+    window_data["字体-"].Widget.config(font=f'{font} {font_size}')
+
+
+
+
 def rapid_calculation_interface(file_name, cumulative_color):
     # -----------------------------------------------------------------
     #                   rapid calculation interface
@@ -182,6 +241,8 @@ def rapid_calculation_interface(file_name, cumulative_color):
         first_col = 0
         opened1 = True
         opened2 = True
+        font_size = 12
+        font = "微软雅黑"
 
         # use interface to choose which specific range of data in Excel to use
         # create layout_choose_data
@@ -192,7 +253,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
 
 
         layout_1 = [
-            [sg.FileBrowse(button_text="新文件", key="新文件"), sg.In(key="新文件路径")],
+            [sg.FileBrowse(button_text="新文件", key="新文件", font=("微软雅黑", font_size)), sg.In(key="新文件路径")],
             [sg.T("       工作簿编号: ", key="工作簿"), sg.In(key="工作簿名称", size=(5, 1))],
             [sg.Text("       文件待导入...", key="导入成功", text_color="red"), sg.B("导入文件")]
         ]
@@ -210,7 +271,8 @@ def rapid_calculation_interface(file_name, cumulative_color):
         ]
 
         layout_data = [
-            [sg.B("缩小"), sg.B("放大"), sg.B("全屏")],
+            [sg.B("缩小"), sg.B("放大"), sg.B("全屏"), sg.T("字体-", text_color="grey", key="字体-", enable_events=True, relief="sunken"),
+             sg.T("字体+", text_color="grey", key="字体+", enable_events=True, relief="sunken")],
             [sg.T(line_1, text_color="grey", key="-12", enable_events=True)],
             [collapse(layout_1, "fold_1")],
             # 自定义版面
@@ -221,9 +283,9 @@ def rapid_calculation_interface(file_name, cumulative_color):
             [sg.Text(f"第{col}列数据为：", key="第几列", font=("微软雅黑", 12))],
             [sg.Text(f"平均值: {round(mean[0], 4)}", key="平均值", font=("微软雅黑", 12)), sg.Text(f"平方差: {round(variance[0], 4)}", key="平方差", font=("微软雅黑", 12)),
              sg.Text(f"标准差: {round(standard_deviation[0], 4)}", key="标准差", font=("微软雅黑", 12))],
-            [sg.Button("生成图像"), sg.T(" 标题:"), sg.InputText(key="名称", size=(10, 1)),
+            [sg.Button("生成图像"), sg.T(" 标题:", key="T标题"), sg.InputText(key="名称", size=(10, 1)),
              sg.T("x轴名称:", key="Tx轴名称"),
-             sg.InputText(key="x轴名称", size=(10, 1)), sg.T("        ")],
+             sg.InputText(key="x轴名称", size=(10, 1)), sg.T("        ", key="空格1")],
             [sg.Button("概率计算"), sg.Text("最低值:", key='T最低值'), sg.InputText(key="x1", size=(8, 1)),
              sg.Text("最高值:", key='T最高值'), sg.In(key="x2", size=(8, 1)), sg.T("概率:", key='T概率'),
              sg.T(f"{possibility}%", key="概率")],
@@ -236,7 +298,6 @@ def rapid_calculation_interface(file_name, cumulative_color):
 
         while True:
             event_data, values_data = window_data.read()
-
             if event_data == "-12":
                 opened1 = not opened1
                 window_data["-12"].update(line_1 if opened1 else line_2)
@@ -424,6 +485,10 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 sys.exit()
 
             if event_data == "生成图像":
+                if data_set == [[1]] or data_set == []:
+                    sg.Popup("请添加数据", keep_on_top=True)
+                    continue
+
                 x_coo = 0
                 for i in range(len(data_set)):
                     if not data_set[i]:
@@ -497,6 +562,9 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 plt.show()
 
             if event_data == "概率计算":
+                if data_set == [[1]] or data_set == []:
+                    sg.Popup("请添加数据", keep_on_top=True)
+                    continue
                 try:
                     x1 = float(values_data["x1"])
                     x2 = float(values_data["x2"])
@@ -563,18 +631,29 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 if count_size == 1:
                     # 使得窗口全屏
                     window_data.Maximize()
+                    global_update(window_data, font, font_size)
+                    # let the font size be 1/10 of the hight of window
+
 
                 elif count_size == -1:
                     # 使得窗口恢复
                     window_data.Normal()
+                    global_update(window_data, font, font_size)
 
                 count_size *= -1
 
             elif event_data == "放大":
-                window_data.Size = (window_data.Size[0] + 100, window_data.Size[1] + 100)
+                window_data.Size = (window_data.Size[0] + 100, window_data.Size[1] + 70)
 
             elif event_data == "缩小":
-                window_data.Size = (window_data.Size[0] - 100, window_data.Size[1] - 100)
+                window_data.Size = (window_data.Size[0] - 100, window_data.Size[1] - 70)
+
+            elif event_data == "字体+":
+                font_size += 1
+                global_update(window_data, font, font_size)
+            elif event_data == "字体-":
+                font_size -= 1
+                global_update(window_data, font, font_size)
 
             # change the preciseness of the graph
             elif event_data in ["+", "-", "++", "--"] and graph_count == 1:
@@ -596,7 +675,12 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     else:
                         hist_pre = 1
 
-                for i in range(len(data_set)):
+                if values_data["尾列"] != "":
+                    for i in range(len(data_set)):
+                        plt.figure(f"第{first_col + i}列")
+                        subplot_223(data_corrected[i], values_data, hist_pre)
+                        subplot_224(data_set[i], values_data, hist_pre)
+                else:
                     subplot_223(data_corrected[i], values_data, hist_pre)
                     subplot_224(data_set[i], values_data, hist_pre)
 
@@ -628,3 +712,4 @@ def rapid_calculation_interface(file_name, cumulative_color):
 
                 window_data["散点"].update(f"散点大小: {spot_size:<3}")
                 plt.show()
+
