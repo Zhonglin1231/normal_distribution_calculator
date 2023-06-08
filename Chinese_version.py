@@ -50,7 +50,6 @@ def alpha_transfer(trans_list):
 
 def calculation(data_set, window_data, col):
     # use csv.iat to append data in csv to data set
-
     mean = sum(data_set) / len(data_set)
     # uses the technique of point estimate
     variance = sum([(i - mean) ** 2 for i in data_set]) / len(data_set)
@@ -83,7 +82,7 @@ def change_color(cumulative_color):
 
 def subplot_221(data_set, values_data, spot_size, color, mean):
     plt.subplot(2, 2, 1)
-    plt.cla()
+    # plt.cla()
     # set the vision on y axis
     plt.ylim(0, mean*1.1)
     # set values of x and y
@@ -203,6 +202,10 @@ def global_update(window_data, font, font_size):
     window_data["T标题"].Widget.config(font=f'{font} {font_size}')
     window_data["字体+"].Widget.config(font=f'{font} {font_size}')
     window_data["字体-"].Widget.config(font=f'{font} {font_size}')
+    window_data["T列"].Widget.config(font=f'{font} {font_size}')
+    window_data["列"].Widget.config(font=f'{font} {font_size}')
+    window_data["空格2"].Widget.config(font=f'{font} {font_size}')
+    window_data["空格3"].Widget.config(font=f'{font} {font_size}')
 
 
 
@@ -286,14 +289,15 @@ def rapid_calculation_interface(file_name, cumulative_color):
             [sg.Button("生成图像"), sg.T(" 标题:", key="T标题"), sg.InputText(key="名称", size=(10, 1)),
              sg.T("x轴名称:", key="Tx轴名称"),
              sg.InputText(key="x轴名称", size=(10, 1)), sg.T("        ", key="空格1")],
-            [sg.Button("概率计算"), sg.Text("最低值:", key='T最低值'), sg.InputText(key="x1", size=(8, 1)),
-             sg.Text("最高值:", key='T最高值'), sg.In(key="x2", size=(8, 1)), sg.T("概率:", key='T概率'),
-             sg.T(f"{possibility}%", key="概率")],
+            [sg.Button("概率计算"), sg.Text("最低值:", key='T最低值'), sg.InputText(key="x1", size=(8, 1)), sg.T("列:", key='T列'),
+             sg.InputText(key="列", size=(10, 1)), sg.T(" "*14, key="空格2")],
+            [sg.Text("最高值:", key='T最高值'), sg.In(key="x2", size=(8, 1)), sg.T("概率:", key='T概率'),
+             sg.T(f"{possibility}%", key="概率"), sg.T(" "*7, key="空格3")],
             [sg.B('--'), sg.B('-'), sg.T(f"直方图精度: {hist_pre:>3}", key="精度"), sg.B('+'), sg.B('++')],
             [sg.B('<<'), sg.B('<'), sg.T(f" 散点大小: {spot_size:>3} ", key="散点"), sg.B('>'), sg.B('>>')]
         ]
 
-        window_data = sg.Window("力生美数据分析", layout_data, size=(800, 600), location =(370, 100),
+        window_data = sg.Window("力生美数据分析", layout_data, size=(800, 650), location =(370, 100),
                                 element_justification='c', keep_on_top=True)
 
         while True:
@@ -572,13 +576,34 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     sg.Popup("输入无效", keep_on_top=True)
                     continue
 
-                # give select a value
-                select = int(last_col)-first_col
+                if values_data["尾列"] != '':
+                    if values_data["列"] == '':
+                        selected_col = first_col
+                    # get the selected column
+                    else:
+                        # if selected_col is an integer
+                        if values_data["列"].isdigit():
+                            selected_col = int(values_data["列"])
+
+                        else:
+                            selected_col = alpha_transfer(values_data["列"])
+
+                    if selected_col == "error":
+                        sg.Popup("请输入正确的列数", keep_on_top=True)
+                        continue
+                    # give select a value
+
+                    select = selected_col - first_col
+                    # go to the correct figure
+                    plt.figure(f"第{selected_col}列")
+
+                elif values_data["尾列"] == '':
+                    select = 0
 
                 possibility = abs(
                     (stats.norm.cdf(x2, mean[select], standard_deviation[select]) - stats.norm.cdf(x1, mean[select], standard_deviation[select])) * 100)
 
-                window_data["概率"].update(value=f"{round(possibility, 2)}%")
+                window_data["概率"].update(value=f"{round(float(possibility), 2)}%")
 
                 possibility_rough = abs(
                     (stats.norm.cdf(x2, mean_rough[select], standard_deviation_rough[select]) - stats.norm.cdf(x1, mean_rough[select],
@@ -610,6 +635,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     plt.axvline(x=float(values_data["x2"]), linewidth=2, linestyle='--', color=color)
 
                     area = np.trapz(filled_y, filled_x) * 100
+                    proper_separation = [mean[select] + standard_deviation[select], (1 / (3 * standard_deviation[select])) / 10]
                     plt.text(proper_separation[0],
                              stats.norm.pdf(mean[select], mean[select], standard_deviation[select]) - sep_num * proper_separation[1],
                              f"{values_data['x1']} ~ {values_data['x2']}: {area.round(2)}%", size=12,
