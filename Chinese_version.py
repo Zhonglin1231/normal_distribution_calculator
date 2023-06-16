@@ -6,6 +6,7 @@ import sys
 import pandas as pd
 from pylab import mpl
 import seaborn as sns
+import re
 
 sns.set()
 
@@ -80,22 +81,25 @@ def change_color(cumulative_color):
     return color
 
 
-def subplot_221(data_set, values_data, spot_size, color, mean):
-    plt.subplot(2, 2, 1)
-    # plt.cla()
-    # set the vision on y axis
-    plt.ylim(0, mean*1.1)
-    # set values of x and y
-    x1 = np.linspace(1, len(data_set), len(data_set))
-    y1 = data_set
-    # draw the line
-    plt.scatter(x1, y1, color=color, s=spot_size, alpha=0.5)
-    # label the graph
-    plt.title(values_data["名称"], size=20)
-    plt.xlabel("芯片编号", size=15)
-    plt.ylabel(values_data["x轴名称"], size=15)
-    # give grid
-    plt.grid(True)
+def subplot_221(scatter_set, values_data, spot_size, color, mean, scatter_color):
+    plt.cla()
+    count = 0
+    for data_set in scatter_set:
+        plt.subplot(2, 2, 1)
+        # set the vision on y axis
+        plt.ylim(0, mean * 1.1)
+        # set values of x and y
+        x1 = np.linspace(1, len(data_set), len(data_set))
+        y1 = data_set
+        # draw the line
+        plt.scatter(x1, y1, color=scatter_color[count], s=spot_size, alpha=0.5)
+        # label the graph
+        plt.title(values_data["名称"], size=20)
+        plt.xlabel("芯片编号", size=15)
+        plt.ylabel(values_data["x轴名称"], size=15)
+        # give grid
+        plt.grid(True)
+        count += 1
 
 
 def subplot_223(data_corrected, values_data, hist_pre):
@@ -174,6 +178,7 @@ def global_update(window_data, font, font_size):
     window_data["完成自定义"].Widget.config(font=f'{font} {font_size}')
     window_data["-3"].Widget.config(font=f'{font} {font_size}')
     window_data["第几列"].Widget.config(font=f'{font} {font_size}')
+    window_data["scatter"].Widget.config(font=f'{font} {font_size}')
     window_data["平均值"].Widget.config(font=f'{font} {font_size}')
     window_data["平方差"].Widget.config(font=f'{font} {font_size}')
     window_data["标准差"].Widget.config(font=f'{font} {font_size}')
@@ -246,6 +251,8 @@ def rapid_calculation_interface(file_name, cumulative_color):
         opened2 = True
         font_size = 12
         font = "微软雅黑"
+        scatter_set = []
+        scatter_color = []
 
         # use interface to choose which specific range of data in Excel to use
         # create layout_choose_data
@@ -253,7 +260,6 @@ def rapid_calculation_interface(file_name, cumulative_color):
         SIMBLE_DOWN = "\u25BC"
         line_1 = f"---------------------------{SIMBLE_DOWN}---------------------------"
         line_2 = f"---------------------------{SIMBLE_RIGHT}---------------------------"
-
 
         layout_1 = [
             [sg.FileBrowse(button_text="新文件", key="新文件", font=("微软雅黑", font_size)), sg.In(key="新文件路径")],
@@ -284,7 +290,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
             [sg.T("---------------------------3---------------------------", text_color="grey", key="-3")],
             # 告诉用户这是第几列数据
             [sg.Text(f"第{col}列数据为：", key="第几列", font=("微软雅黑", 12))],
-            [sg.Text(f"平均值: {round(mean[0], 4)}", key="平均值", font=("微软雅黑", 12)), sg.Text(f"平方差: {round(variance[0], 4)}", key="平方差", font=("微软雅黑", 12)),
+            [sg.Text("清空散点", text_color="grey", key="scatter", enable_events=True), sg.Text(f"平均值: {round(mean[0], 4)}", key="平均值", font=("微软雅黑", 12)), sg.Text(f"平方差: {round(variance[0], 4)}", key="平方差", font=("微软雅黑", 12)),
              sg.Text(f"标准差: {round(standard_deviation[0], 4)}", key="标准差", font=("微软雅黑", 12))],
             [sg.Button("生成图像"), sg.T(" 标题:", key="T标题"), sg.InputText(key="名称", size=(10, 1)),
              sg.T("x轴名称:", key="Tx轴名称"),
@@ -446,20 +452,27 @@ def rapid_calculation_interface(file_name, cumulative_color):
 
                         # check if the data is string
                         elif type(csv.iat[i - 1, j - 1]) == str:
-                            if '.' in csv.iat[i - 1, j - 1]:
-                                csv.iat[i - 1, j - 1] = float(csv.iat[i - 1, j - 1])
+                            for letter in csv.iat[i - 1, j - 1]:
+                                print(letter)
+                                if letter not in "-1234567890.":
+                                    csv.iat[i - 1, j - 1] = csv.iat[i - 1, j - 1].replace(letter, '')
 
+                            if '.' in csv.iat[i - 1, j - 1]:
+                                print(csv.iat[i - 1, j - 1])
+                                csv.iat[i - 1, j - 1] = float(csv.iat[i - 1, j - 1])
+                            '''
                             else:
                                 sg.Popup("数据异常", keep_on_top=True)
                                 # close the window and restart
                                 # print(csv.iat[i - 1, j - 1])
                                 window_data.close()
                                 return rapid_calculation_interface(file_name, cumulative_color)
+                            '''
                         # data_set is a 2D list
                         data_set[j-first_col].append(csv.iat[i - 1, j - 1])
 
                 for k in range(len(data_set)):
-                    data_set[k] = [float(i) for i in data_set[k] if str(i) != 'nan']
+                    data_set[k] = [float(i) for i in data_set[k] if (str(i) != 'nan' and str(i) != '')]
 
                 # print(data_set)
 
@@ -487,6 +500,12 @@ def rapid_calculation_interface(file_name, cumulative_color):
             if event_data in ("退出", None):
                 window_data.close()
                 sys.exit()
+
+            if event_data == "scatter":
+                plt.subplot(2, 2, 1)
+                plt.cla()
+                scatter_set = []
+                scatter_color = []
 
             if event_data == "生成图像":
                 if data_set == [[1]] or data_set == []:
@@ -516,8 +535,11 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     mngr.window.wm_geometry(f"+{x_coo}+{0}")  # 调整窗口在屏幕上弹出的位置
                     x_coo += 100
 
+                    scatter_set.append(data_set[i])
+                    scatter_color.append(color)
+
                     # first graph
-                    subplot_221(data_set[i], values_data, spot_size, color, mean[i])
+                    subplot_221(scatter_set, values_data, spot_size, color, mean[i], scatter_color)
 
                     # second graph
                     plt.subplot(2, 2, 2)
@@ -734,7 +756,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
                         spot_size = 1
 
                 for i in range(len(data_set)):
-                    subplot_221(data_set[i], values_data, spot_size, color, mean[i])
+                    subplot_221(scatter_set, values_data, spot_size, color, mean[i], scatter_color)
 
                 window_data["散点"].update(f"散点大小: {spot_size:<3}")
                 plt.show()
