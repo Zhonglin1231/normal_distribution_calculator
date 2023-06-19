@@ -6,7 +6,6 @@ import sys
 import pandas as pd
 from pylab import mpl
 import seaborn as sns
-import re
 
 sns.set()
 
@@ -81,7 +80,7 @@ def change_color(cumulative_color):
     return color
 
 
-def subplot_221(scatter_set, values_data, spot_size, color, mean, scatter_color):
+def subplot_221(scatter_set, values_data, spot_size, color, mean, scatter_color, scatter_error_value_num_l):
     plt.cla()
     count = 0
     for data_set in scatter_set:
@@ -92,7 +91,7 @@ def subplot_221(scatter_set, values_data, spot_size, color, mean, scatter_color)
         x1 = np.linspace(1, len(data_set), len(data_set))
         y1 = data_set
         # draw the line
-        plt.scatter(x1, y1, color=scatter_color[count], s=spot_size, alpha=0.5)
+        plt.scatter(x1, y1, color=scatter_color[count], s=spot_size, alpha=0.5, label=f"异常符: {scatter_error_value_num_l[count]}")
         # label the graph
         plt.title(values_data["名称"], size=20)
         plt.xlabel("芯片编号", size=15)
@@ -100,6 +99,7 @@ def subplot_221(scatter_set, values_data, spot_size, color, mean, scatter_color)
         # give grid
         plt.grid(True)
         count += 1
+    plt.legend()
 
 
 def subplot_223(data_corrected, values_data, hist_pre):
@@ -253,6 +253,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
         font = "微软雅黑"
         scatter_set = []
         scatter_color = []
+        scatter_error_value_num_l = []
 
         # use interface to choose which specific range of data in Excel to use
         # create layout_choose_data
@@ -340,15 +341,15 @@ def rapid_calculation_interface(file_name, cumulative_color):
                         # auto find header
                         while True:
                             try:
-                                print(header)
+                                # print(header)
                                 csv = pd.read_csv(file_name, sep=',', header=header - 1, skip_blank_lines=False)
-                                print("1pass")
+                                # print("1pass")
                                 csv_2 = pd.read_csv(file_name, sep=',', header=header, skip_blank_lines=False)
-                                print("2pass")
+                                # print("2pass")
 
                                 nrows, ncols = csv.shape
                                 nrow_2, ncol_2 = csv_2.shape
-                                print(ncols)
+                                # print(ncols)
                                 if ncols == ncol_2:
                                     break
 
@@ -394,6 +395,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
             if event_data == "完成自定义":
                 graph_count = 1
                 data_set = []
+                error_value_num_l = []
 
                 # transform the input to int
                 # print(values_data["首列"])
@@ -441,36 +443,38 @@ def rapid_calculation_interface(file_name, cumulative_color):
                     mean_rough.append([])
                     variance_rough.append([])
                     standard_deviation_rough.append([])
+                    error_value_num_l.append([])
 
                 # append data to data_set
-                for i in range(first_row - header, int(last_row) + 1 - header):
-                    for j in range(first_col, int(last_col) + 1):
 
+                for j in range(first_col, int(last_col) + 1):
+                    error_value_num = 0
+                    for i in range(first_row - header, int(last_row) + 1 - header):
+                        print(type(csv.iat[i - 1, j - 1]))
                         # ignore the blank data
-                        if csv.iat[i - 1, j - 1] == "":
+                        temp = csv.iat[i - 1, j - 1]
+                        if temp == "":
                             continue
 
                         # check if the data is string
-                        elif type(csv.iat[i - 1, j - 1]) == str:
-                            for letter in csv.iat[i - 1, j - 1]:
-                                print(letter)
+
+                        elif type(temp) == str:
+                            print("string")
+                            error_value_num += 1  # count the number of error value
+                            for letter in temp:
+                                # print(letter)
                                 if letter not in "-1234567890.":
-                                    csv.iat[i - 1, j - 1] = csv.iat[i - 1, j - 1].replace(letter, '')
+                                    temp = temp.replace(letter, '')
 
-                            if '.' in csv.iat[i - 1, j - 1]:
-                                print(csv.iat[i - 1, j - 1])
-                                csv.iat[i - 1, j - 1] = float(csv.iat[i - 1, j - 1])
-                            '''
-                            else:
-                                sg.Popup("数据异常", keep_on_top=True)
-                                # close the window and restart
+                            if '.' in temp:
                                 # print(csv.iat[i - 1, j - 1])
-                                window_data.close()
-                                return rapid_calculation_interface(file_name, cumulative_color)
-                            '''
-                        # data_set is a 2D list
-                        data_set[j-first_col].append(csv.iat[i - 1, j - 1])
+                                temp = float(temp)
+                                error_value_num -= 1  # string with '.' is not error value
 
+                        # data_set is a 2D list
+                        data_set[j-first_col].append(temp)
+                        print(error_value_num)
+                    error_value_num_l[j-first_col] = error_value_num
                 for k in range(len(data_set)):
                     data_set[k] = [float(i) for i in data_set[k] if (str(i) != 'nan' and str(i) != '')]
 
@@ -506,6 +510,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
                 plt.cla()
                 scatter_set = []
                 scatter_color = []
+                scatter_error_value_num_l = []
 
             if event_data == "生成图像":
                 if data_set == [[1]] or data_set == []:
@@ -537,9 +542,10 @@ def rapid_calculation_interface(file_name, cumulative_color):
 
                     scatter_set.append(data_set[i])
                     scatter_color.append(color)
+                    scatter_error_value_num_l.append(error_value_num_l[i])
 
                     # first graph
-                    subplot_221(scatter_set, values_data, spot_size, color, mean[i], scatter_color)
+                    subplot_221(scatter_set, values_data, spot_size, color, mean[i], scatter_color, scatter_error_value_num_l)
 
                     # second graph
                     plt.subplot(2, 2, 2)
@@ -756,8 +762,7 @@ def rapid_calculation_interface(file_name, cumulative_color):
                         spot_size = 1
 
                 for i in range(len(data_set)):
-                    subplot_221(scatter_set, values_data, spot_size, color, mean[i], scatter_color)
+                    subplot_221(scatter_set, values_data, spot_size, color, mean[i], scatter_color, scatter_error_value_num_l)
 
                 window_data["散点"].update(f"散点大小: {spot_size:<3}")
                 plt.show()
-
